@@ -9,6 +9,7 @@
     * { box-sizing: border-box; }
     body { margin: 0; min-width: 0; background: var(--ui-surface); }
     header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; padding: 14px 20px; background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); position: sticky; top: 0; z-index: 2; }
+    header.export-open { z-index: 4; }
     h1 { min-width: 0; margin: 0; overflow: hidden; font-size: 18px; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
     button { border: 1px solid var(--ui-border); border-radius: 7px; background: var(--ui-surface); color: var(--ui-text); padding: 7px 11px; cursor: pointer; }
     .toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
@@ -66,7 +67,8 @@
     .selection-format-menu-toggle:hover, .selection-format-menu-toggle:focus-visible, .selection-format-menu-toggle[aria-expanded="true"] { background: var(--ui-hover); outline: none; }
     .selection-format-chevron { display: block; flex: 0 0 auto; width: 14px; height: 14px; color: var(--ui-text-muted); }
     .selection-format-chevron path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
-    .selection-format-menu { position: absolute; top: calc(100% + 8px); right: 0; display: grid; gap: 1px; min-width: 180px; max-width: min(280px, calc(100vw - 16px)); padding: 5px; border: 1px solid var(--ui-border-strong); border-radius: 14px; background: var(--ui-surface); box-shadow: 0 8px 20px rgba(15, 23, 42, .16); }
+    .selection-format-menu { position: absolute; top: calc(100% + 8px); right: 0; display: grid; gap: 1px; min-width: 180px; max-width: min(280px, calc(100vw - 16px)); padding: 5px; border: 1px solid var(--ui-border-strong); border-radius: 14px; background: var(--ui-surface); box-shadow: 0 8px 20px rgba(15, 23, 42, .16); overflow-y: auto; }
+    .selection-format-menu.opens-up { top: auto; bottom: calc(100% + 8px); }
     .selection-format-menu button { width: 100%; padding: 6px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-size: 15px; line-height: 1.35; }
     .selection-format-menu button[data-format^="H"] { font-weight: 700; }
     .selection-format-menu button:hover, .selection-format-menu button:focus-visible, .selection-format-menu button[aria-current="true"] { background: var(--ui-hover); outline: none; }
@@ -266,6 +268,7 @@
     </div>
   </div>
   <script>
+    const header = document.querySelector('header');
     const canvasLayout = document.querySelector('#canvas-layout');
     const preview = document.querySelector('#preview');
     const status = document.querySelector('#status');
@@ -801,7 +804,7 @@
       if (!app.documentId) {
         const empty = document.createElement('div');
         empty.className = 'document-empty-state';
-        empty.innerHTML = '<svg class="document-empty-state-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 20V7L20 3H4L2 7.00353V20C2 20.5523 2.44772 21 3 21H21C21.5523 21 22 20.5523 22 20ZM4 9H20V19H4V9ZM5.236 5H18.764L19.764 7H4.237L5.236 5ZM15 11H9V13H15V11Z"></path></svg><div>暂无文档，请从文档菜单中新建文档</div>';
+        empty.innerHTML = '<svg class="document-empty-state-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.02381 3.78307C4.12549 3.32553 4.5313 3 5 3H19C19.4687 3 19.8745 3.32553 19.9762 3.78307L21.9762 12.7831C21.992 12.8543 22 12.927 22 13V20C22 20.5523 21.5523 21 21 21H3C2.44772 21 2 20.5523 2 20V13C2 12.927 2.00799 12.8543 2.02381 12.7831L4.02381 3.78307ZM5.80217 5L4.24662 12H9C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12H19.7534L18.1978 5H5.80217ZM16.584 14C15.8124 15.7659 14.0503 17 12 17C9.94968 17 8.1876 15.7659 7.41604 14H4V19H20V14H16.584Z"></path></svg><div>暂无文档，请从文档菜单中新建文档</div>';
         preview.appendChild(empty);
         renderOutline();
         return;
@@ -1061,6 +1064,8 @@
 
     function closeSelectionFormatMenu() {
       selectionFormatMenu.hidden = true;
+      selectionFormatMenu.classList.remove('opens-up');
+      selectionFormatMenu.style.maxHeight = '';
       selectionFormatMenuToggle.setAttribute('aria-expanded', 'false');
     }
 
@@ -1115,6 +1120,20 @@
       return range.getClientRects()[0] || null;
     }
 
+    function positionSelectionFormatMenu() {
+      if (selectionFormatMenu.hidden) return;
+      selectionFormatMenu.classList.remove('opens-up');
+      selectionFormatMenu.style.maxHeight = '';
+      const toolbarRect = selectionToolbar.getBoundingClientRect();
+      const menuRect = selectionFormatMenu.getBoundingClientRect();
+      const spaceBelow = Math.max(0, window.innerHeight - toolbarRect.bottom - 8);
+      const spaceAbove = Math.max(0, toolbarRect.top - 8);
+      const opensUp = menuRect.height > spaceBelow && spaceAbove > spaceBelow;
+      selectionFormatMenu.classList.toggle('opens-up', opensUp);
+      const available = opensUp ? spaceAbove : spaceBelow;
+      if (menuRect.height > available) selectionFormatMenu.style.maxHeight = `${Math.floor(available)}px`;
+    }
+
     function positionSelectionToolbar() {
       if (!selectionState || selectionToolbar.hidden) return;
       const rect = selectionRect(selectionState.range);
@@ -1132,6 +1151,7 @@
       const top = above >= 8 ? above : Math.max(8, Math.min(maxTop, rect.bottom + gap));
       selectionToolbar.style.left = `${left}px`;
       selectionToolbar.style.top = `${top}px`;
+      positionSelectionFormatMenu();
     }
 
     function syncSelectionToolbar() {
@@ -1862,6 +1882,7 @@
       const opening = selectionFormatMenu.hidden;
       selectionFormatMenu.hidden = !opening;
       selectionFormatMenuToggle.setAttribute('aria-expanded', String(opening));
+      if (opening) positionSelectionFormatMenu();
     });
     selectionFormatMenu.addEventListener('click', (event) => {
       const option = event.target.closest('[data-format]');
@@ -1907,6 +1928,7 @@
       const opening = exportOptions.hidden;
       exportOptions.hidden = !opening;
       exportToggleButton.setAttribute('aria-expanded', String(opening));
+      header.classList.toggle('export-open', opening);
     });
     exportPdfButton.addEventListener('click', () => exportDocument('pdf', 'PDF'));
     exportMarkdownButton.addEventListener('click', () => exportDocument('markdown', 'MD'));
@@ -1936,6 +1958,7 @@
     function closeExportMenu() {
       exportOptions.hidden = true;
       exportToggleButton.setAttribute('aria-expanded', 'false');
+      header.classList.remove('export-open');
     }
 
     function closeDocumentMenu() {
