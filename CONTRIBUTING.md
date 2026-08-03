@@ -47,4 +47,12 @@ git config --local core.hooksPath .githooks
 git push origin main
 ```
 
+普通推送不会自动创建版本标签。需要发布版本时，在干净的 `main` 工作区执行：
+
+```bash
+./scripts/release.sh patch
+```
+
+脚本会从最新的 `vX.Y.Z` 递增版本，运行统一检查，创建 annotated tag，并同时推送 `main` 和版本标签；`patch` 也可以替换为 `minor` 或 `major`。
+
 不使用强制推送，不改写已有提交历史。提交说明校验和推送前检查由 `.githooks/` 自动执行；也可以手动运行 `./scripts/check.sh`。
