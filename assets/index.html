@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Codex Desk</title>
+  <title></title>
   <style>
     :root { --outline-motion-duration: .24s; --outline-motion-ease: cubic-bezier(.22, 1, .36, 1); --ui-surface: #fff; --ui-surface-subtle: #f7f7f8; --ui-border: #e5e5e5; --ui-border-strong: #d1d5db; --ui-text: #2f2f2f; --ui-text-muted: #6b6b6b; --ui-hover: #f1f1f1; --ui-active: #e8e8e8; --ui-primary: #3b82f6; --ui-primary-strong: #2563eb; color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ui-text); background: var(--ui-surface); }
     * { box-sizing: border-box; }
@@ -39,7 +39,7 @@
     .document-menu-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 16px; height: 16px; margin-right: 3px; border: 0; border-radius: 50%; padding: 0; background: #9ca3af; color: #fff; opacity: 0; pointer-events: none; font-size: 12px; line-height: 1; }
     .document-menu-option:hover .document-menu-delete, .document-menu-option:focus-within .document-menu-delete { opacity: 1; pointer-events: auto; }
     .document-menu-delete:hover, .document-menu-delete:focus-visible { background: #6b7280; }
-    .document-menu-archive { background: transparent; color: var(--ui-text-muted); opacity: 1; pointer-events: auto; }
+    .document-menu-archive { background: transparent; color: var(--ui-text-muted); }
     .document-menu-archive:hover, .document-menu-archive:focus-visible { background: transparent; color: var(--ui-text); }
     .document-menu-delete .mode-icon, .document-menu-restore .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
     .document-menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -269,6 +269,7 @@
   </div>
   <script>
     const header = document.querySelector('header');
+    document.title = header.querySelector('h1').textContent.trim();
     const canvasLayout = document.querySelector('#canvas-layout');
     const preview = document.querySelector('#preview');
     const status = document.querySelector('#status');
@@ -284,12 +285,7 @@
     const exampleOptions = document.querySelector('#example-options');
     const importTeslaExampleButton = document.querySelector('#import-tesla-example');
     const importXiaomiExampleButton = document.querySelector('#import-xiaomi-example');
-    const exampleMenuIcon = defaultButton.querySelector('.mode-icon');
-    [importTeslaExampleButton, importXiaomiExampleButton].forEach((button) => {
-      button.prepend(exampleMenuIcon.cloneNode(true));
-    });
     const documentMenuToggle = document.querySelector('#document-menu-toggle');
-    const documentMenuIcon = documentMenuToggle.querySelector('.mode-icon');
       const documentMenuOptions = document.querySelector('#document-menu-options');
       const archiveMenuToggle = document.querySelector('#archive-menu-toggle');
       const archiveMenuOptions = document.querySelector('#archive-menu-options');
@@ -469,7 +465,6 @@
         select.setAttribute('aria-current', String(doc.id === app.documentId));
         select.title = title;
         select.setAttribute('aria-label', title);
-        select.appendChild(documentMenuIcon.cloneNode(true));
         const label = document.createElement('span');
         label.className = 'document-menu-label';
         label.textContent = menuDisplayTitle(title);
@@ -526,7 +521,6 @@
         label.className = 'document-menu-select';
         label.title = title;
         label.setAttribute('aria-label', `${title}，已归档`);
-        label.appendChild(documentMenuIcon.cloneNode(true));
         const text = document.createElement('span');
         text.className = 'document-menu-label';
         text.textContent = menuDisplayTitle(title);

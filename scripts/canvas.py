@@ -385,7 +385,7 @@ def documents_state_unlocked(data_dir: Path) -> dict[str, Any]:
     return {
         "active_id": index["active_id"],
         "documents": documents,
-        "archived_documents": index["archived_documents"],
+        "archived_documents": list(reversed(index["archived_documents"])),
     }
 
 
@@ -724,7 +724,7 @@ def create_document(
             document_title(content) if content.strip() else "未命名文档"
         )
         atomic_write(document_path(data_dir, document_id), content)
-        index["documents"].append({"id": document_id, "title": document_title_value})
+        index["documents"].insert(0, {"id": document_id, "title": document_title_value})
         index["active_id"] = document_id
         write_documents_index_unlocked(data_dir, index)
         return state_unlocked(data_dir, document_id)
@@ -734,6 +734,9 @@ def set_active_document(data_dir: Path, document_id: str) -> dict[str, Any]:
     with data_lock(data_dir):
         index = load_documents_index_unlocked(data_dir)
         target_id = resolve_document_id_unlocked(data_dir, document_id)
+        record = next(record for record in index["documents"] if record["id"] == target_id)
+        index["documents"].remove(record)
+        index["documents"].insert(0, record)
         index["active_id"] = target_id
         write_documents_index_unlocked(data_dir, index)
         return documents_state_unlocked(data_dir)
@@ -767,7 +770,7 @@ def restore_document(data_dir: Path, document_id: str) -> dict[str, Any]:
         if not document_path(data_dir, target_id).is_file():
             raise CanvasError("归档文档文件不存在，请从备份恢复。")
         index["archived_documents"].remove(record)
-        index["documents"].append(record)
+        index["documents"].insert(0, record)
         if index["active_id"] is None:
             index["active_id"] = target_id
         write_documents_index_unlocked(data_dir, index)
@@ -1325,12 +1328,13 @@ def self_check() -> None:
         assert body["content"] == "# 未命名文档\n正文。\n"
         cleared = write_document_block(data_dir, 1, 2, "\n", body["revision"], draft["document_id"])
         assert cleared["content"] == "# 未命名文档\n\n"
+        assert [document["id"] for document in list_documents(data_dir)["documents"]] == [draft["document_id"], MAIN_DOCUMENT_ID]
         archived = delete_document(data_dir, draft["document_id"])
         assert [document["id"] for document in archived["documents"]] == [MAIN_DOCUMENT_ID]
         assert [document["id"] for document in archived["archived_documents"]] == [draft["document_id"]]
         assert document_path(data_dir, draft["document_id"]).exists()
         restored = restore_document(data_dir, draft["document_id"])
-        assert [document["id"] for document in restored["documents"]] == [MAIN_DOCUMENT_ID, draft["document_id"]]
+        assert [document["id"] for document in restored["documents"]] == [draft["document_id"], MAIN_DOCUMENT_ID]
         assert restored["archived_documents"] == []
         delete_document(data_dir, draft["document_id"])
         purged = permanently_delete_document(data_dir, draft["document_id"])
@@ -1339,6 +1343,7 @@ def self_check() -> None:
         blank = create_document(data_dir)
         assert blank["title"] == "未命名文档"
         assert blank["content"] == ""
+        assert [document["id"] for document in list_documents(data_dir)["documents"]] == [blank["document_id"], MAIN_DOCUMENT_ID]
         assert read_state(data_dir, MAIN_DOCUMENT_ID)["content"] == initial
         delete_document(data_dir, blank["document_id"])
         permanently_delete_document(data_dir, blank["document_id"])
@@ -1347,6 +1352,14 @@ def self_check() -> None:
         assert created["title"] == "第二文档"
         assert read_state(data_dir, MAIN_DOCUMENT_ID)["content"] == initial
         assert list_documents(data_dir)["active_id"] == created["document_id"]
+        assert [document["id"] for document in list_documents(data_dir)["documents"]] == [created["document_id"], MAIN_DOCUMENT_ID]
+        archive_first = create_document(data_dir, "# 归档一\n")
+        archive_second = create_document(data_dir, "# 归档二\n")
+        delete_document(data_dir, archive_second["document_id"])
+        archived_order = delete_document(data_dir, archive_first["document_id"])
+        assert [document["id"] for document in archived_order["archived_documents"]] == [archive_first["document_id"], archive_second["document_id"]]
+        permanently_delete_document(data_dir, archive_first["document_id"])
+        permanently_delete_document(data_dir, archive_second["document_id"])
         proposed = propose_document(
             data_dir,
             "第二份内容。\n",
@@ -1367,6 +1380,7 @@ def self_check() -> None:
         assert untitled_title == "未命名文档"
         set_active_document(data_dir, MAIN_DOCUMENT_ID)
         assert list_documents(data_dir)["active_id"] == MAIN_DOCUMENT_ID
+        assert [document["id"] for document in list_documents(data_dir)["documents"]] == [MAIN_DOCUMENT_ID, created["document_id"]]
         deleted = delete_document(data_dir, created["document_id"])
         assert deleted["active_id"] == MAIN_DOCUMENT_ID
         assert [document["id"] for document in deleted["documents"]] == [MAIN_DOCUMENT_ID]
