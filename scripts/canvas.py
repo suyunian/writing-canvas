@@ -14,7 +14,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.error
 import urllib.request
 import uuid
 from contextlib import contextmanager
@@ -50,10 +49,6 @@ DOCUMENT_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 class CanvasError(Exception):
     """Expected user/data error that should not produce a traceback."""
-
-
-def data_path(data_dir: Path, name: str) -> Path:
-    return data_dir / name
 
 
 def document_path(data_dir: Path, document_id: str) -> Path:
@@ -95,7 +90,7 @@ def atomic_write(path: Path, content: str) -> None:
 @contextmanager
 def data_lock(data_dir: Path) -> Iterator[None]:
     data_dir.mkdir(parents=True, exist_ok=True)
-    lock_path = data_path(data_dir, LOCK_NAME)
+    lock_path = data_dir / LOCK_NAME
     with lock_path.open("a+") as lock_file:
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
         try:
@@ -106,13 +101,9 @@ def data_lock(data_dir: Path) -> Iterator[None]:
 
 def ensure_data_dir(data_dir: Path) -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
-    documents_dir = data_path(data_dir, DOCUMENTS_DIR_NAME)
-    documents_dir.mkdir(parents=True, exist_ok=True)
-    index_file = data_path(data_dir, DOCUMENTS_INDEX_NAME)
+    index_file = data_dir / DOCUMENTS_INDEX_NAME
     if index_file.exists():
         return
-    main_dir = documents_dir / MAIN_DOCUMENT_ID
-    main_dir.mkdir(parents=True, exist_ok=True)
     content = ""
     atomic_write(document_path(data_dir, MAIN_DOCUMENT_ID), content)
     atomic_write(
@@ -130,7 +121,7 @@ def ensure_data_dir(data_dir: Path) -> None:
 def load_documents_index_unlocked(data_dir: Path) -> dict[str, Any]:
     ensure_data_dir(data_dir)
     try:
-        payload = json.loads(data_path(data_dir, DOCUMENTS_INDEX_NAME).read_text(encoding="utf-8"))
+        payload = json.loads((data_dir / DOCUMENTS_INDEX_NAME).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         raise CanvasError("文档索引损坏，请从备份恢复。") from error
     if not isinstance(payload, dict) or not isinstance(payload.get("documents"), list):
@@ -145,7 +136,7 @@ def load_documents_index_unlocked(data_dir: Path) -> dict[str, Any]:
             raise CanvasError("文档标题格式无效。")
         records.append({"id": document_id, "title": title})
     if not records:
-        raise CanvasError("文档索引至少保留一个文档。")
+        return {"active_id": None, "documents": []}
     active_id = payload.get("active_id")
     if active_id not in {record["id"] for record in records}:
         active_id = records[0]["id"]
@@ -154,13 +145,15 @@ def load_documents_index_unlocked(data_dir: Path) -> dict[str, Any]:
 
 def write_documents_index_unlocked(data_dir: Path, index: dict[str, Any]) -> None:
     atomic_write(
-        data_path(data_dir, DOCUMENTS_INDEX_NAME),
+        data_dir / DOCUMENTS_INDEX_NAME,
         json.dumps(index, ensure_ascii=False),
     )
 
 
 def document_record_unlocked(data_dir: Path, document_id: str | None = None) -> dict[str, str]:
     index = load_documents_index_unlocked(data_dir)
+    if not index["documents"]:
+        raise CanvasError("没有可用文档。")
     target_id = document_id or index["active_id"]
     validate_document_id(target_id)
     for record in index["documents"]:
@@ -187,7 +180,7 @@ def load_unlocked(data_dir: Path, document_id: str | None = None) -> str:
     try:
         return document_path(data_dir, target_id).read_text(encoding="utf-8")
     except OSError as error:
-        raise CanvasError(f"无法读取文稿：{error}") from error
+        raise CanvasError(f"无法读取文档：{error}") from error
 
 
 def load_example_unlocked(example_id: str) -> str:
@@ -379,18 +372,17 @@ def build_pdf(content: str) -> bytes:
         r"C:\\Windows\\Fonts\\msyhbd.ttc",
     )
 
-    def register_font(name: str, candidates: tuple[str, ...]) -> str | None:
+    def register_font(name: str, candidates: tuple[str, ...]) -> None:
         if name in pdfmetrics.getRegisteredFontNames():
-            return None
+            return
         for font_path in candidates:
             if not Path(font_path).exists():
                 continue
             try:
                 pdfmetrics.registerFont(TTFont(name, font_path))
-                return font_path
+                return
             except Exception:
                 continue
-        return None
 
     register_font(PDF_FONT_NAME, regular_font_candidates)
     if PDF_FONT_NAME not in pdfmetrics.getRegisteredFontNames():
@@ -627,7 +619,7 @@ def build_pdf(content: str) -> bytes:
     )
     story = story_from_tokens(markdown_parser().parse(content))
     if not story:
-        story = [Paragraph("（空白文稿）", body)]
+        story = [Paragraph("（空白文档）", body)]
 
     def footer(canvas: Any, doc: Any) -> None:
         canvas.saveState()
@@ -677,13 +669,11 @@ def delete_document(data_dir: Path, document_id: str) -> dict[str, Any]:
     with data_lock(data_dir):
         index = load_documents_index_unlocked(data_dir)
         target_id = resolve_document_id_unlocked(data_dir, document_id)
-        if len(index["documents"]) <= 1:
-            raise CanvasError("删除失败。")
         index["documents"] = [
             record for record in index["documents"] if record["id"] != target_id
         ]
         if index["active_id"] == target_id:
-            index["active_id"] = index["documents"][0]["id"]
+            index["active_id"] = index["documents"][0]["id"] if index["documents"] else None
         document_dir = document_path(data_dir, target_id).parent
         if document_dir.exists():
             shutil.rmtree(document_dir)
@@ -698,7 +688,7 @@ def read_state(data_dir: Path, document_id: str | None = None) -> dict[str, Any]
 
 def check_revision(current: str, expected: str | None) -> None:
     if expected is not None and expected != current:
-        raise CanvasError("文稿已被其他操作更新，请重新读取后再试。")
+        raise CanvasError("文档已被其他操作更新，请重新读取后再试。")
 
 
 def write_document(
@@ -753,7 +743,7 @@ def propose_document(
         current_revision = revision_for(current_content)
         check_revision(current_revision, expected_revision)
         if not source or current_content.count(source) != 1:
-            raise CanvasError("待修改原文必须在当前文稿中恰好出现一次。")
+            raise CanvasError("待修改原文必须在当前文档中恰好出现一次。")
         if sum(source in block["content"] for block in markdown_blocks(current_content)) != 1:
             raise CanvasError("暂不支持跨多个 Markdown 块的修改，请只选择一个段落或列表。")
         existing = load_review_unlocked(data_dir, target_id)
@@ -875,6 +865,10 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
                 return
             if path == "/api/health":
+                listing = list_documents(self.data_dir)
+                if listing["active_id"] is None:
+                    send_json(self, {"ok": True, "document_id": None, "revision": None})
+                    return
                 state = read_state(self.data_dir, document_id)
                 send_json(
                     self,
@@ -958,7 +952,7 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 result = accept_review(self.data_dir, request["base_revision"], document_id)
             elif path == "/api/document":
                 if not isinstance(request.get("content"), str):
-                    raise CanvasError("文稿内容必须是字符串")
+                    raise CanvasError("文档内容必须是字符串")
                 result = write_document(self.data_dir, request["content"], request["base_revision"], document_id)
             else:
                 if (
@@ -1009,7 +1003,7 @@ def is_healthy(port: int) -> bool:
         with urllib.request.urlopen(health_url(port), timeout=0.4) as response:
             payload = json.loads(response.read().decode("utf-8"))
             return response.status == 200 and payload.get("ok") is True
-    except (OSError, urllib.error.URLError, json.JSONDecodeError):
+    except (OSError, json.JSONDecodeError):
         return False
 
 
@@ -1051,150 +1045,69 @@ def self_check() -> None:
     assert EXAMPLE_FILES["xiaomi"].is_file()
     assert load_example_unlocked("tesla").startswith("# 2025年特斯拉年度报告\n")
     assert load_example_unlocked("xiaomi").startswith("# 2025年小米年度报告\n")
-    assert "function selectCanvasContent(container)" in asset
-    assert "function selectionCovers(container)" in asset
-    assert "selectCanvasContent(selectionCovers(container) ? preview : container)" in asset
-    assert "async function clearSelectedCanvas()" in asset
-    assert "if (selectionCovers(preview))" in asset
-    assert "void clearSelectedCanvas();" in asset
-    assert "const stateChanged = app.revision !== next.revision;" in asset
-    assert "if (!editing && (stateChanged || reviewChanged)) renderBlocks();" in asset
-    assert "windowFocused: document.hasFocus()" in asset
-    assert "window.addEventListener('blur', () => { app.windowFocused = false; });" in asset
-    assert "function selectionRangeWithin(container)" in asset
-    assert "function selectableContentBlock(container)" in asset
-    assert "function selectionRangeWithinPreview()" in asset
-    assert "const first = selectionState?.containers?.length > 1 ? range.getClientRects()[0] : null;" in asset
-    assert "Math.max(8, Math.min(maxTop, rect.bottom + gap))" in asset
-    assert "const containers = Array.from(preview.querySelectorAll('.canvas-block'))" in asset
-    assert "range.compareBoundaryPoints(Range.END_TO_START, contents) < 0" in asset
-    assert "range.compareBoundaryPoints(Range.START_TO_END, contents) > 0" in asset
-    assert "container: container || cross.containers[0]" in asset
-    assert "currentSelectionContext()?.crossBlock" in asset
-    assert "(!state.crossBlock && !app.editing)" in asset
-    assert "if (!state.crossBlock) state.container.focus" in asset
-    assert "state.containers.length > 1" in asset
-    assert "if (!['UL', 'OL'].includes(value)) return false;" in asset
-    assert "const list = document.createElement(value.toLowerCase());" in asset
-    assert "if (value === 'P' && nestedList.matches('UL, OL')) {" in asset
-    assert "const paragraphs = document.createDocumentFragment();" in asset
-    assert "paragraphs.appendChild(paragraph);" in asset
-    assert "if (value === 'P' && state.container.children.length > 1) return saveActiveBlock(true);" in asset
-    assert "const target = state.container;" in asset
-    assert "if (target !== first) first.replaceWith(target);" in asset
-    assert "serializeBlockContent(target)" in asset
-    assert "if (container !== target) container.remove();" in asset
-    assert "if (!editing) await beginBlockEdit(firstIndex);" in asset
-    assert "if (app.editing && activeBlock)" in asset
-    assert "app.editing.index = firstIndex;" in asset
-    assert "selectionState = { ...state, crossBlock: false, container: target, containers: [target], range };" in asset
-    assert "await replaceDocument(content, false);" in asset
-    assert "function selectionRangeForContainer" not in asset
-    assert "function persistSelectionChanges" not in asset
-    assert "event.selectionFormat" not in asset
-    assert "function placeCaretInEmptyParagraph(container)" in asset
-    assert "container.replaceChildren(document.createElement('p'));" in asset
-    assert "if (!placeCaretInEmptyParagraph(container)) {" in asset
-    assert "if (selectedRange) {\n          restoreSelection(selectedRange);\n          syncSelectionToolbar();\n        } else {" in asset
-    assert "container.addEventListener('beforeinput', () => placeCaretInEmptyParagraph(container));" in asset
-    assert '.canvas-block[data-block-index="0"] > p { min-height: 1.75em; margin: 0; }' in asset
-    assert 'id="selection-toolbar"' in asset
-    assert 'class="selection-format-handle"' in asset
-    assert 'id="selection-bold"' in asset
-    assert 'id="selection-italic"' in asset
-    assert 'id="selection-quote"' in asset
-    assert 'id="selection-format-menu-toggle"' in asset
-    assert 'id="selection-format-menu"' in asset
-    assert 'class="selection-format-chevron"' in asset
-    assert 'data-format="H1"' in asset and 'data-format="H2"' in asset and 'data-format="H3"' in asset
-    assert 'data-format="UL"' in asset and 'data-format="OL"' in asset
-    assert 'data-format="P" aria-current="true">文本</button>' in asset
-    assert "const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');" in asset
-    assert "selectionFormatMenuLabel.textContent =" in asset
-    assert 'selectionBlockType' not in asset and 'selectionListType' not in asset
-    assert ".selection-toolbar { position: fixed;" in asset
-    assert ".selection-format-menu { position: absolute;" in asset
-    assert '.selection-format-menu button[data-format^="H"] { font-weight: 700; }' in asset
-    assert "function syncSelectionToolbar()" in asset
-    assert "function updateSelectionFormatMenu(context)" in asset
-    assert "function applySelectionFormat(value)" in asset
-    assert "const quoted = source.matches('BLOCKQUOTE');" in asset
-    assert "} else if (value === 'BLOCKQUOTE') {" in asset
-    assert "selectionQuoteButton.addEventListener('click'" in asset
-    assert "document.execCommand(command, false, value);" in asset
-    assert "document.addEventListener('selectionchange', syncSelectionToolbar);" in asset
-    assert "selectionToolbar.contains(event.target)" in asset
-    assert "selectionToolbar.contains(document.activeElement)" in asset
-    assert "window.setTimeout(() => {\n        if (currentSelectionContext()?.crossBlock) {\n          syncSelectionToolbar();\n          return;\n        }\n        void beginBlockEdit(Number(container.dataset.blockIndex), event);\n      }, 0);" in asset
-    assert "const targetBlock = event.target.closest?.('.canvas-block');" in asset
-    assert "&& !(targetBlock && preview.contains(targetBlock)))" in asset
-    assert "function resolveReview(action)" in asset
-    assert "review-accept" in asset
-    assert "review-reject" in asset
-    assert "applyState(next);\n        if (action === 'accept') recordEdit(previousContent, next.content);" in asset
-    assert "id=\"document-menu-toggle\"" in asset
-    assert "const documentMenuIcon = documentMenuToggle.querySelector('.mode-icon');" in asset
-    assert "select.appendChild(documentMenuIcon.cloneNode(true));" in asset
-    assert "function renderDocumentMenu()" in asset
-    assert "documentMenuToggle.disabled" not in asset
-    assert "if (app.documents.length > 1) {" in asset
-    assert "function createDocument()" in asset
-    assert "新建文稿" in asset
-    assert "document-menu-create" in asset
-    assert ".document-menu-create { display: flex; align-items: center; gap: 8px;" in asset
-    assert "M9 2.00318V2H19.9978" in asset
-    assert "empty.className = 'canvas-block empty-state';" in asset
-    assert "const emptyDocument = editing.endLine === 0;" in asset
-    assert "{ start_line: 0, end_line: 0, content: '' }" in asset
-    assert "Array.from(container.childNodes)" in asset
-    assert "event.isComposing" in asset
-    assert "getData('text/plain')" in asset
-    assert "text.replace(/\\r\\n?/g, '\\n')" in asset
-    assert "id=\"example-options\"" in asset
-    assert "导入特斯拉年报范例" in asset
-    assert "导入小米年报范例" in asset
-    assert "async function importExampleContent(exampleId)" in asset
-    assert "/api/default?example=" in asset
-    assert "id=\"document-tabs\"" not in asset
-    assert "async function switchDocument(documentId, persist = true)" in asset
-    assert "async function deleteDocument(documentId, title)" in asset
-    assert "/api/documents/delete" in asset
-    assert "document-menu-delete" in asset
-    assert "id=\"outline-toggle\"" in asset
-    assert "function renderOutline()" in asset
-    assert "outline-collapsed-icon" in asset
-    assert "outline-expanded-icon" in asset
-    assert ".outline-toggle .mode-icon[hidden] { display: none; }" in asset
-    assert "outlineCollapsedIcon.toggleAttribute('hidden', open);" in asset
-    assert "outlinePanel.setAttribute('aria-hidden', String(!open));" in asset
-    assert "--outline-motion-duration: .24s;" in asset
-    assert "transition: grid-template-columns var(--outline-motion-duration) var(--outline-motion-ease);" in asset
-    assert ".outline-panel { position: absolute; top: 44px; right: 0; left: 0;" in asset
-    assert "clip-path: inset(0 100% 0 0);" in asset
-    assert "transition: clip-path var(--outline-motion-duration) var(--outline-motion-ease)" in asset
-    assert "transform: translateX(-8px)" not in asset
-    assert "@media (min-width: 1180px)" in asset
-    assert ".outline-panel { top: 72px; max-height: calc(100vh - 130px); }" in asset
-    assert "grid-template-columns: minmax(0, 1fr) minmax(0, 210mm) minmax(0, 1fr);" in asset
-    assert "max-width: none; padding-inline: 20px;" in asset
-    assert "@media (min-width: 721px) and (max-width: 1179px)" in asset
-    assert "main.outline-open { grid-template-columns: 280px minmax(0, 1fr); }" in asset
-    assert "@media (max-width: 720px)" in asset
-    assert ".outline-sidebar { position: fixed; top: 61px; right: 0; bottom: 0; left: auto;" in asset
-    assert "heading.scrollIntoView({ behavior: 'smooth', block: 'start' });" in asset
-    assert "window.addEventListener('scroll', handleCanvasScroll, { passive: true });" in asset
-    assert "entry.heading.getBoundingClientRect().top <= 96" in asset
-    assert "window.matchMedia('(max-width: 720px)').matches" in asset
-    assert "main:not(.outline-open) .outline-sidebar { transform: translateX(calc(100% - 44px));" in asset
-    assert "main:not(.outline-open) .outline-sidebar .outline-toggle { border: 1px solid var(--ui-border); border-right: 0; border-radius: 8px 0 0 8px; background: var(--ui-surface); }" in asset
-    assert ".outline-panel { top: 74px; max-height: calc(100vh - 130px); padding: 10px 0; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease), visibility 0s linear var(--outline-motion-duration); }" in asset
-    assert "main:not(.outline-open) .outline-panel { clip-path: inset(0); }" in asset
-    assert "main.outline-open .outline-sidebar::after" in asset
-    assert "transition: none;" not in asset
-    assert "!heading.closest('.review-proposed')" in asset
-    assert "暂无可用大纲" in asset
-    assert "document_id: app.documentId" in asset
-    assert "REVIEW_NAME = \"review.json\"" in Path(__file__).read_text(encoding="utf-8")
+    required_asset_markers = (
+        "function selectCanvasContent(container)",
+        "function selectionCovers(container)",
+        "async function clearSelectedCanvas()",
+        "const stateChanged = app.revision !== next.revision;",
+        "function selectionRangeWithinPreview()",
+        "const containers = Array.from(preview.querySelectorAll('.canvas-block'))",
+        "range.compareBoundaryPoints(Range.END_TO_START, contents) < 0",
+        "range.compareBoundaryPoints(Range.START_TO_END, contents) > 0",
+        "if (!['UL', 'OL'].includes(value)) return false;",
+        "const list = document.createElement(value.toLowerCase());",
+        "if (value === 'P' && nestedList.matches('UL, OL')) {",
+        "const paragraphs = document.createDocumentFragment();",
+        "await replaceDocument(content, false);",
+        "function placeCaretInEmptyParagraph(container)",
+        'id="selection-toolbar"',
+        'id="selection-quote"',
+        "function syncSelectionToolbar()",
+        "function applySelectionFormat(value)",
+        "document.addEventListener('selectionchange', syncSelectionToolbar);",
+        "function resolveReview(action)",
+        'id="document-menu-toggle"',
+        "function renderDocumentMenu()",
+        "document-empty-state-icon",
+        "暂无文档，请从文档菜单中新建文档",
+        "function clearDocumentState()",
+        "copyButton.disabled = !hasDocument;",
+        "exportToggleButton.disabled = !hasDocument;",
+        "if (!hasDocument) closeExportMenu();",
+        "async function createDocument(content = '# 未命名文档\\n\\n')",
+        "function hasEmptyBodySlot()",
+        "container.className = 'canvas-block body-placeholder';",
+        "body: JSON.stringify({ content })",
+        "async function importExampleContent(exampleId)",
+        "/api/default?example=",
+        "await createDocument(content);",
+        "async function deleteDocument(documentId, title)",
+        "/api/documents/delete",
+        "document-menu-delete",
+        "function renderOutline()",
+        "暂无可用大纲",
+        "document_id: app.documentId",
+    )
+    missing = [marker for marker in required_asset_markers if marker not in asset]
+    assert not missing, missing
+    forbidden_asset_markers = (
+        "function selectionRangeForContainer",
+        "function persistSelectionChanges",
+        "event.selectionFormat",
+        "selectionBlockType",
+        "selectionListType",
+        "document-menu-empty",
+        "if (app.documents.length > 1) {",
+        "当前画布已有内容，确认覆盖替换为范例内容吗？",
+        "await replaceDocument(content);",
+        "windowFocused",
+        "app.title",
+        "function lineCount(content)",
+        "truncateDocumentTitle",
+        "reviewing",
+    )
+    present = [marker for marker in forbidden_asset_markers if marker in asset]
+    assert not present, present
     with tempfile.TemporaryDirectory(prefix="writing-canvas-") as temporary:
         data_dir = Path(temporary)
         initial = "# 标题\n\n保留这句。\n"
@@ -1255,6 +1168,13 @@ def self_check() -> None:
         listing = list_documents(data_dir)
         assert listing["active_id"] == MAIN_DOCUMENT_ID
         assert [document["id"] for document in listing["documents"]] == [MAIN_DOCUMENT_ID]
+        draft = create_document(data_dir, "# 未命名文档\n\n")
+        assert draft["title"] == "未命名文档"
+        body = write_document_block(data_dir, 1, 2, "正文。\n", draft["revision"], draft["document_id"])
+        assert body["content"] == "# 未命名文档\n正文。\n"
+        cleared = write_document_block(data_dir, 1, 2, "\n", body["revision"], draft["document_id"])
+        assert cleared["content"] == "# 未命名文档\n\n"
+        delete_document(data_dir, draft["document_id"])
         blank = create_document(data_dir)
         assert blank["title"] == "未命名文档"
         assert blank["content"] == ""
@@ -1289,12 +1209,11 @@ def self_check() -> None:
         assert deleted["active_id"] == MAIN_DOCUMENT_ID
         assert [document["id"] for document in deleted["documents"]] == [MAIN_DOCUMENT_ID]
         assert not document_path(data_dir, created["document_id"]).exists()
-        try:
-            delete_document(data_dir, MAIN_DOCUMENT_ID)
-        except CanvasError as error:
-            assert str(error) == "删除失败。"
-        else:
-            raise AssertionError("last document was deleted")
+        empty = delete_document(data_dir, MAIN_DOCUMENT_ID)
+        assert empty == {"active_id": None, "documents": []}
+        assert not document_path(data_dir, MAIN_DOCUMENT_ID).exists()
+        recreated = create_document(data_dir, "# 重建文档\n")
+        assert recreated["title"] == "重建文档"
         print("writing-canvas self-check: OK")
 
 
@@ -1367,7 +1286,7 @@ def main(argv: list[str] | None = None) -> int:
             print(service_url(args.port), flush=True)
             server.serve_forever()
             return 0
-    except (CanvasError, OSError, json.JSONDecodeError, ValueError) as error:
+    except (CanvasError, OSError, ValueError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
     return 1

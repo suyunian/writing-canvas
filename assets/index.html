@@ -86,6 +86,10 @@
     .canvas-block[contenteditable="true"]:focus { outline: none; }
     .canvas-block[data-block-index="0"] > p { min-height: 1.75em; margin: 0; }
     .canvas-block + .canvas-block > p { margin-top: 12px; }
+    .canvas-block.body-placeholder > p { min-height: 1.75em; margin: 12px 0 0; }
+    .canvas-block.body-placeholder:not([contenteditable="true"]) > p::before { content: '点击此处输入正文'; color: #a0a6b1; }
+    .document-empty-state { padding: 48px 20px; color: var(--ui-text-muted); text-align: center; }
+    .document-empty-state-icon { display: block; width: 40px; height: 40px; margin: 0 auto 14px; color: #c5cad3; }
     .review-change { position: relative; margin: 36px 0 22px; padding-top: 26px; }
     .review-actions { position: absolute; top: 0; left: 50%; display: flex; gap: 4px; padding: 7px; border: 1px solid var(--ui-border-strong); border-radius: 18px; background: var(--ui-surface); box-shadow: 0 4px 12px rgba(15, 23, 42, .14); transform: translate(-50%, -50%); z-index: 1; }
     .review-actions button { border: 0; border-radius: 13px; padding: 7px 13px; background: transparent; font-size: 15px; font-weight: 600; }
@@ -145,10 +149,8 @@
       .outline-panel { top: 74px; max-height: calc(100vh - 130px); padding: 10px 0; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease), visibility 0s linear var(--outline-motion-duration); }
       main:not(.outline-open) .outline-panel { clip-path: inset(0); }
       .selection-toolbar { max-width: calc(100vw - 12px); }
-      .workspace { grid-column: auto; grid-row: auto; }
-      .workspace { min-height: calc(100vh - 100px); border-radius: 8px; }
-      article { min-height: calc(100vh - 132px); }
-      article { padding: 20px 18px; }
+      .workspace { grid-column: auto; grid-row: auto; min-height: calc(100vh - 100px); border-radius: 8px; }
+      article { min-height: calc(100vh - 132px); padding: 20px 18px; }
       article table { display: block; overflow-x: auto; white-space: nowrap; }
     }
     @media (max-width: 420px) {
@@ -164,7 +166,7 @@
 </head>
 <body>
   <header>
-    <div class="toolbar"><h1>Codex Desk</h1><span id="status">正在读取…</span></div>
+    <div class="toolbar"><h1>Markdown Caves</h1><span id="status">正在读取…</span></div>
     <div class="toolbar">
       <button id="undo-button" class="icon-button" type="button" aria-label="撤销" title="撤销" disabled>
         <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5.82843 6.99955L8.36396 9.53509L6.94975 10.9493L2 5.99955L6.94975 1.0498L8.36396 2.46402L5.82843 4.99955H13C17.4183 4.99955 21 8.58127 21 12.9996C21 17.4178 17.4183 20.9996 13 20.9996H4V18.9996H13C16.3137 18.9996 19 16.3133 19 12.9996C19 9.68584 16.3137 6.99955 13 6.99955H5.82843Z"></path></svg>
@@ -214,7 +216,7 @@
       </nav>
     </aside>
     <section class="workspace">
-      <article id="preview" aria-label="Markdown 文稿"></article>
+      <article id="preview" aria-label="Markdown 文档"></article>
     </section>
   </main>
   <div id="selection-toolbar" class="selection-toolbar" role="toolbar" aria-label="文本格式" hidden>
@@ -265,22 +267,13 @@
     const selectionFormatMenuToggle = document.querySelector('#selection-format-menu-toggle');
     const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
     const selectionFormatMenu = document.querySelector('#selection-format-menu');
-    const app = { documentId: null, title: '', documents: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false, windowFocused: document.hasFocus() };
+    const app = { documentId: null, documents: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false };
     let outlineEntries = [];
     let outlineScrollFrame = 0;
     let outlineScrollEndTimer = 0;
     let outlineClickScrolling = false;
     let selectionState = null;
-    const DOCUMENT_MENU_TITLE_LIMIT = 15;
-
     const setStatus = (text) => { status.textContent = text; };
-
-    function truncateDocumentTitle(title) {
-      const characters = Array.from(title);
-      return characters.length > DOCUMENT_MENU_TITLE_LIMIT
-        ? `${characters.slice(0, DOCUMENT_MENU_TITLE_LIMIT - 1).join('')}…`
-        : title;
-    }
 
     function setOutlineOpen(open) {
       canvasLayout.classList.toggle('outline-open', open);
@@ -398,6 +391,19 @@
       }
     }
 
+    function clearDocumentState() {
+      app.documentId = null;
+      app.content = '';
+      app.revision = null;
+      app.blocks = [];
+      app.editing = null;
+      app.review = null;
+      app.undoStack = [];
+      app.redoStack = [];
+      renderBlocks();
+      updateHistoryButtons();
+    }
+
     function renderDocumentMenu() {
       documentMenuOptions.replaceChildren();
       app.documents.forEach((doc) => {
@@ -415,7 +421,7 @@
         select.appendChild(documentMenuIcon.cloneNode(true));
         const label = document.createElement('span');
         label.className = 'document-menu-label';
-        label.textContent = truncateDocumentTitle(title);
+        label.textContent = title;
         select.appendChild(label);
         if (doc.has_review) {
           const dot = document.createElement('span');
@@ -428,37 +434,39 @@
           void switchDocument(doc.id);
         });
         option.appendChild(select);
-        if (app.documents.length > 1) {
-          const remove = document.createElement('button');
-          remove.className = 'document-menu-delete';
-          remove.type = 'button';
-          remove.role = 'menuitem';
-          remove.title = `删除${title}`;
-          remove.setAttribute('aria-label', `删除${title}`);
-          remove.textContent = '×';
-          remove.addEventListener('click', (event) => {
-            event.stopPropagation();
-            void deleteDocument(doc.id, title);
-          });
-          option.appendChild(remove);
-        }
+        const remove = document.createElement('button');
+        remove.className = 'document-menu-delete';
+        remove.type = 'button';
+        remove.role = 'menuitem';
+        remove.title = `删除${title}`;
+        remove.setAttribute('aria-label', `删除${title}`);
+        remove.textContent = '×';
+        remove.addEventListener('click', (event) => {
+          event.stopPropagation();
+          void deleteDocument(doc.id, title);
+        });
+        option.appendChild(remove);
         documentMenuOptions.appendChild(option);
       });
       const create = document.createElement('button');
       create.className = 'document-menu-create';
       create.type = 'button';
       create.role = 'menuitem';
-      create.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 2.00318V2H19.9978C20.5513 2 21 2.45531 21 2.9918V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5501 3 20.9932V8L9 2.00318ZM5.82918 8H9V4.83086L5.82918 8ZM11 4V9C11 9.55228 10.5523 10 10 10H5V20H19V4H11Z"></path></svg><span>新建文稿</span>';
+      create.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 2.00318V2H19.9978C20.5513 2 21 2.45531 21 2.9918V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5501 3 20.9932V8L9 2.00318ZM5.82918 8H9V4.83086L5.82918 8ZM11 4V9C11 9.55228 10.5523 10 10 10H5V20H19V4H11Z"></path></svg><span>新建文档</span>';
       create.addEventListener('click', () => void createDocument());
       documentMenuOptions.appendChild(create);
     }
 
     function updateHistoryButtons() {
       const blocked = app.historyBusy || app.reviewBusy || app.review;
+      const hasDocument = Boolean(app.documentId);
       undoButton.disabled = blocked || !app.undoStack.length;
       redoButton.disabled = blocked || !app.redoStack.length;
       defaultButton.disabled = blocked;
+      copyButton.disabled = !hasDocument;
+      exportToggleButton.disabled = !hasDocument;
       if (blocked) closeExampleMenu();
+      if (!hasDocument) closeExportMenu();
     }
 
     function recordEdit(previousContent, nextContent) {
@@ -518,6 +526,9 @@
         renderDocumentMenu();
         if (listing.active_id && listing.active_id !== app.documentId) {
           await switchDocument(listing.active_id, false);
+        } else if (!listing.active_id) {
+          clearDocumentState();
+          setStatus('');
         } else {
           setStatus('');
         }
@@ -527,14 +538,14 @@
       }
     }
 
-    async function createDocument() {
+    async function createDocument(content = '# 未命名文档\n\n') {
       if (app.historyBusy || app.reviewBusy) return;
       if (!(await save())) return;
       closeDocumentMenu();
       try {
         const next = await request('/api/documents', {
           method: 'POST',
-          body: JSON.stringify({ content: '' })
+          body: JSON.stringify({ content })
         });
         app.documents.push({
           id: next.document_id,
@@ -554,6 +565,15 @@
         const listing = await request('/api/documents');
         app.documents = listing.documents || [];
         renderDocumentMenu();
+        if (!listing.active_id && !app.documents.length) {
+          if (app.documentId) clearDocumentState();
+          else {
+            renderBlocks();
+            updateHistoryButtons();
+          }
+          setStatus('');
+          return;
+        }
         const available = app.documents.some((document) => document.id === app.documentId);
         const externalActive = listing.active_id && listing.active_id !== app.documentId && !app.editing && !app.reviewBusy;
         const target = externalActive || !available ? listing.active_id : app.documentId;
@@ -593,7 +613,6 @@
       proposed.setAttribute('aria-label', '修改后内容');
       proposed.innerHTML = review.new_html || '';
       change.append(actions, original, proposed);
-      container.classList.add('reviewing');
       container.setAttribute('aria-label', '待确认修改');
       container.appendChild(change);
     }
@@ -613,9 +632,23 @@
       preview.appendChild(notice);
     }
 
+    function hasEmptyBodySlot() {
+      const first = app.blocks[0];
+      return app.blocks.length === 1 && Boolean(first?.content && /^\s*#\s+/.test(first.content))
+        && app.content.endsWith('\n\n');
+    }
+
     function renderBlocks() {
       hideSelectionToolbar();
       preview.innerHTML = '';
+      if (!app.documentId) {
+        const empty = document.createElement('div');
+        empty.className = 'document-empty-state';
+        empty.innerHTML = '<svg class="document-empty-state-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22 20V7L20 3H4L2 7.00353V20C2 20.5523 2.44772 21 3 21H21C21.5523 21 22 20.5523 22 20ZM4 9H20V19H4V9ZM5.236 5H18.764L19.764 7H4.237L5.236 5ZM15 11H9V13H15V11Z"></path></svg><div>暂无文档，请从文档菜单中新建文档</div>';
+        preview.appendChild(empty);
+        renderOutline();
+        return;
+      }
       if (!app.blocks.length) {
         const empty = document.createElement('div');
         empty.className = 'canvas-block empty-state';
@@ -623,7 +656,7 @@
         empty.tabIndex = 0;
         empty.setAttribute('aria-label', '点击编辑此段内容');
         const paragraph = document.createElement('p');
-        paragraph.textContent = '点击此处输入文稿内容';
+        paragraph.textContent = '点击此处输入文档内容';
         empty.appendChild(paragraph);
         preview.appendChild(empty);
         renderOutline();
@@ -645,6 +678,15 @@
         }
         preview.appendChild(container);
       });
+      if (hasEmptyBodySlot()) {
+        const container = document.createElement('div');
+        container.className = 'canvas-block body-placeholder';
+        container.dataset.blockIndex = '1';
+        container.tabIndex = 0;
+        container.setAttribute('aria-label', '点击编辑正文');
+        container.appendChild(document.createElement('p'));
+        preview.appendChild(container);
+      }
       renderOutline();
     }
 
@@ -661,7 +703,6 @@
         app.undoStack = [];
         app.redoStack = [];
       }
-      app.title = next.title || app.title;
       app.content = next.content;
       app.revision = next.revision;
       app.blocks = next.blocks || [];
@@ -754,12 +795,6 @@
       if (!parts.length) return '';
       const content = parts.join('\n\n');
       return content.endsWith('\n') ? content : `${content}\n`;
-    }
-
-    function lineCount(content) {
-      if (!content) return 0;
-      const lines = content.split(/\r?\n/).length;
-      return content.endsWith('\n') ? lines - 1 : lines;
     }
 
     function insertEditorBreak(container, paragraphBreak) {
@@ -1202,12 +1237,13 @@
         setStatus('');
         try {
           const emptyDocument = editing.endLine === 0;
+          const persistedContent = editing.emptyBodySlot && !content ? '\n' : content;
           const next = await request(emptyDocument ? '/api/document' : '/api/document/block', {
             method: 'POST',
             body: JSON.stringify(emptyDocument
-              ? documentPayload({ content, base_revision: app.revision })
+              ? documentPayload({ content: persistedContent, base_revision: app.revision })
               : {
-                  content,
+                  content: persistedContent,
                   start_line: editing.startLine,
                   end_line: editing.endLine,
                   base_revision: app.revision,
@@ -1217,13 +1253,12 @@
           if (app.editing !== editing) return true;
           recordEdit(previousContent, next.content);
           app.content = next.content;
-          app.title = next.title || app.title;
           app.revision = next.revision;
           app.blocks = next.blocks || [];
           app.review = next.review || null;
           updateDocumentEntry(next);
           renderDocumentMenu();
-          editing.endLine = editing.startLine + lineCount(content);
+          editing.endLine = editing.startLine + (persistedContent ? persistedContent.split(/\r?\n/).length - Number(persistedContent.endsWith('\n')) : 0);
           if (close || !app.blocks[editing.index]) {
             app.editing = null;
             renderBlocks();
@@ -1266,7 +1301,6 @@
         body: JSON.stringify(documentPayload({ content, base_revision: app.revision }))
       });
       app.content = next.content;
-      app.title = next.title || app.title;
       app.revision = next.revision;
       app.blocks = next.blocks || [];
       app.review = next.review || null;
@@ -1292,23 +1326,13 @@
     }
 
     async function importExampleContent(exampleId) {
-      if (app.historyBusy || !(await save())) return;
+      if (app.historyBusy || app.reviewBusy) return;
       try {
         closeExampleMenu();
         const { content } = await request(`/api/default?example=${encodeURIComponent(exampleId)}`);
-        if (content === app.content) return;
-        if (app.content.trim() && !window.confirm('当前画布已有内容，确认覆盖替换为范例内容吗？')) return;
-        const previousContent = app.content;
-        app.historyBusy = true;
-        updateHistoryButtons();
-        await replaceDocument(content);
-        recordEdit(previousContent, content);
-        setStatus('');
+        await createDocument(content);
       } catch (error) {
         setStatus(error.message);
-      } finally {
-        app.historyBusy = false;
-        updateHistoryButtons();
       }
     }
 
@@ -1384,15 +1408,16 @@
         }
         return;
       }
+      const emptyBody = index === app.blocks.length && hasEmptyBodySlot();
       const clickedContainer = preview.querySelector('[data-block-index="' + index + '"]');
-      const clickedHtml = clickedContainer?.innerHTML.trim();
+      const clickedHtml = emptyBody ? '' : clickedContainer?.innerHTML.trim();
       const clickedDomCount = preview.querySelectorAll('.canvas-block').length;
       const previousEditingIndex = app.editing?.index;
       if (app.editing && !(await saveActiveBlock(true))) return;
-      const expectedIndex = previousEditingIndex != null && index > previousEditingIndex
+      const expectedIndex = emptyBody ? index : previousEditingIndex != null && index > previousEditingIndex
         ? index + app.blocks.length - clickedDomCount
         : index;
-      if (clickedHtml) {
+      if (!emptyBody && clickedHtml) {
         const matches = app.blocks
           .map((block, blockIndex) => block.html.trim() === clickedHtml ? blockIndex : -1)
           .filter((blockIndex) => blockIndex >= 0);
@@ -1400,14 +1425,17 @@
       } else {
         index = expectedIndex;
       }
-      const block = app.blocks[index] || (!app.blocks.length && index === 0
+      const block = app.blocks[index] || (emptyBody
+        ? { start_line: 1, end_line: 2, content: '' }
+        : (!app.blocks.length && index === 0
         ? { start_line: 0, end_line: 0, content: '' }
-        : null);
+        : null));
       const container = preview.querySelector('[data-block-index="' + index + '"]');
       if (!block || !container) return;
       const selectedRange = selectionRangeWithin(container);
       app.editing = {
         index,
+        emptyBodySlot: emptyBody,
         startLine: block.start_line,
         endLine: block.end_line,
         content: block.content,
@@ -1506,6 +1534,7 @@
         }
         void beginBlockEdit(Number(container.dataset.blockIndex), event);
       }, 0);
+      else if (hasEmptyBodySlot()) window.setTimeout(() => void beginBlockEdit(1, event), 0);
     }
 
     function handleBlockKeydown(event) {
@@ -1589,9 +1618,7 @@
         closeSelectionFormatMenu();
       }
     });
-    window.addEventListener('blur', () => { app.windowFocused = false; });
-    window.addEventListener('focus', () => { app.windowFocused = true; void syncCanvas(); });
-    document.addEventListener('visibilitychange', () => { app.windowFocused = !document.hidden && document.hasFocus(); });
+    window.addEventListener('focus', () => { void syncCanvas(); });
     window.addEventListener('scroll', handleCanvasScroll, { passive: true });
     window.addEventListener('scroll', positionSelectionToolbar, { passive: true });
     window.addEventListener('resize', () => { scheduleOutlineActive(); positionSelectionToolbar(); });

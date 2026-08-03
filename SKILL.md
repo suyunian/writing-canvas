@@ -1,6 +1,6 @@
 ---
 name: writing-canvas
-description: "在本地写作画布中创建、编辑和预览 Markdown 文稿。仅当用户明确要求‘用画布输出’、‘在写作画布中生成’、‘打开写作画布’或同义表达时使用；不要因普通的写作、保存或润色请求自动触发。画布选区来自 Codex 内置浏览器，修改建议在本地画布中预览并确认。"
+description: "在本地写作画布中创建、编辑和预览 Markdown 文档。仅当用户明确要求‘用画布输出’、‘用写作块输出’、‘在写作画布中生成’、‘打开写作画布’或同义表达时使用；不要因普通的写作、保存或润色请求自动触发。画布选区来自 Codex 内置浏览器，修改建议在本地画布中预览并确认。"
 ---
 
 # Writing Canvas
@@ -45,9 +45,10 @@ separate editor. Changes are converted back to Markdown and replace only that
 block. It also contains Markdown/PDF export, full-document copy, debounced
 autosave, and revision-aware synchronization.
 The header contains a document switcher menu. Codex creates documents; the page
-displays, switches, and can delete them after confirmation. The service keeps at
-least one document. Each document has independent content, revision, review,
-and in-memory undo/redo state.
+displays, switches, and can delete them after confirmation. The service may have
+no documents; the document menu and canvas show an empty state until the user
+creates one. Each document has independent content, revision, review, and
+in-memory undo/redo state.
 Menu names follow the current document's first Markdown level-one heading; when
 that heading is missing or empty, the menu shows “未命名文档”.
 When Codex proposes a marked edit, the local service keeps one pending review

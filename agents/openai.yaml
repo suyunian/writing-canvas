@@ -1,4 +1,4 @@
 interface:
   display_name: "Writing Canvas"
   short_description: "在本地画布编辑和预览 Markdown"
-  default_prompt: "使用 $writing-canvas 在本地写作画布中生成并编辑 Markdown 文稿。"
+  default_prompt: "使用 $writing-canvas 在本地写作画布中生成并编辑 Markdown 文档。"
