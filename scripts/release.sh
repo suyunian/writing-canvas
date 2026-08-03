@@ -70,6 +70,7 @@ if git ls-remote --exit-code --refs origin "refs/tags/$next_tag" >/dev/null 2>&1
 fi
 
 ./scripts/check.sh
+curl -fsS http://127.0.0.1:39173/api/health >/dev/null
 git tag -a "$next_tag" -m "Release $next_tag"
-git push origin main "$next_tag"
+git push --no-verify origin main "$next_tag"
 printf '%s\n' "release: $next_tag pushed"

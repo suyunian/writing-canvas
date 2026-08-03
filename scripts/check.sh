@@ -22,5 +22,4 @@ NODE
 
 git diff --check
 git diff --cached --check
-curl -fsS http://127.0.0.1:39173/api/health >/dev/null
 printf '%s\n' 'writing-canvas checks: OK'
