@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+message_file=$1
+subject=$(sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$message_file" | sed -n '1p')
+pattern='^(feat|fix|chore|docs|refactor|test|build|ci|perf|style|revert|release)(\([[:alnum:]._/-]+\))?!?: [^[:space:]].*$'
+
+if [ -z "$subject" ] || ! printf '%s\n' "$subject" | grep -Eq "$pattern"; then
+  printf '%s\n' '提交说明不符合规范：使用 <type>(<scope>): <summary>。' >&2
+  printf '%s\n' '示例：feat(writing-canvas): add native checklist support' >&2
+  exit 1
+fi
+
+if [ "$(printf '%s' "$subject" | awk '{ print length($0) }')" -gt 72 ]; then
+  printf '%s\n' '提交说明主题行不能超过 72 个字符。' >&2
+  exit 1
+fi
