@@ -58,6 +58,7 @@
     .selection-format-handle { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; color: var(--ui-text-muted); }
     .selection-format-handle svg { display: block; width: 16px; height: 16px; fill: currentColor; }
     .selection-format-button { min-width: 30px; height: 30px; padding: 4px 8px; border: 0; border-radius: 10px; font-size: 15px; line-height: 1; }
+    .selection-format-button svg { display: block; width: 16px; height: 16px; }
     .selection-format-button:hover, .selection-format-button:focus-visible, .selection-format-button[aria-pressed="true"] { background: var(--ui-hover); }
     .selection-format-button:active { background: var(--ui-active); }
     .selection-format-menu-wrap { position: relative; }
@@ -97,6 +98,10 @@
     .canvas-block + .canvas-block > p { margin-top: 12px; }
     .canvas-block.body-placeholder > p { min-height: 1.75em; margin: 12px 0 0; }
     .canvas-block.body-placeholder:not([contenteditable="true"]) > p::before { content: '点击此处输入正文'; color: #a0a6b1; }
+    .canvas-code-host { position: relative; }
+    .canvas-code-actions { position: absolute; top: 20px; right: 8px; display: flex; gap: 4px; z-index: 1; }
+    .canvas-code-actions button { padding: 4px 8px; border: 0; border-radius: 5px; background: rgba(255, 255, 255, .12); color: #e5e7eb; font-size: 12px; line-height: 1.2; }
+    .canvas-code-actions button:hover, .canvas-code-actions button:focus-visible { background: rgba(255, 255, 255, .24); outline: none; }
     .document-empty-state { padding: 48px 20px; color: var(--ui-text-muted); text-align: center; }
     .document-empty-state-icon { display: block; width: 40px; height: 40px; margin: 0 auto 14px; color: #c5cad3; }
     .review-change { position: relative; margin: 36px 0 22px; padding-top: 26px; }
@@ -121,6 +126,8 @@
     article h2 { margin: 28px 0 12px; font-size: 1.5em; }
     article h3 { margin: 20px 0 8px; font-size: 1.25em; }
     article pre { padding: 14px; border-radius: 7px; background: #111827; color: #e5e7eb; overflow-x: auto; }
+    article pre.canvas-code { padding-top: 46px; }
+    article pre.canvas-code-wrap { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; }
     article code { padding: 2px 4px; border-radius: 4px; background: #eef2ff; }
     article pre code { padding: 0; background: transparent; }
     article blockquote { margin-left: 0; padding-left: 15px; border-left: 3px solid var(--ui-border-strong); color: var(--ui-text-muted); }
@@ -244,6 +251,7 @@
     <button id="selection-bold" class="selection-format-button" type="button" aria-label="加粗" title="加粗" aria-pressed="false"><strong>B</strong></button>
     <button id="selection-italic" class="selection-format-button" type="button" aria-label="斜体" title="斜体" aria-pressed="false"><em>I</em></button>
     <button id="selection-quote" class="selection-format-button" type="button" aria-label="引用" title="引用" aria-pressed="false"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.4167 6.67891C20.4469 7.77257 21.0001 9 21.0001 10.9897C21.0001 14.4891 18.5436 17.6263 14.9695 19.1768L14.0768 17.7992C17.4121 15.9946 18.0639 13.6539 18.3245 12.178C17.7875 12.4557 17.0845 12.5533 16.3954 12.4895C14.591 12.3222 13.1689 10.8409 13.1689 9C13.1689 7.067 14.7359 5.5 16.6689 5.5C17.742 5.5 18.7681 5.99045 19.4167 6.67891ZM9.41669 6.67891C10.4469 7.77257 11.0001 9 11.0001 10.9897C11.0001 14.4891 8.54359 17.6263 4.96951 19.1768L4.07682 17.7992C7.41206 15.9946 8.06392 13.6539 8.32447 12.178C7.78747 12.4557 7.08452 12.5533 6.39539 12.4895C4.59102 12.3222 3.16895 10.8409 3.16895 9C3.16895 7.067 4.73595 5.5 6.66895 5.5C7.742 5.5 8.76814 5.99045 9.41669 6.67891Z"></path></svg></button>
+    <button id="selection-code" class="selection-format-button" type="button" aria-label="代码块" title="切换代码块" aria-pressed="false"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12L18.3431 17.6569L16.9289 16.2426L21.1716 12L16.9289 7.75736L18.3431 6.34315L24 12ZM2.82843 12L7.07107 16.2426L5.65685 17.6569L0 12L5.65685 6.34315L7.07107 7.75736L2.82843 12ZM9.78845 21H7.66009L14.2116 3H16.3399L9.78845 21Z"></path></svg></button>
     <div class="selection-format-menu-wrap">
       <button id="selection-format-menu-toggle" class="selection-format-menu-toggle" type="button" aria-label="文本和列表格式" title="文本和列表格式" aria-expanded="false" aria-controls="selection-format-menu"><span id="selection-format-menu-label">文本</span><svg class="selection-format-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
       <div id="selection-format-menu" class="selection-format-menu" role="menu" hidden>
@@ -291,6 +299,7 @@
     const selectionBoldButton = document.querySelector('#selection-bold');
     const selectionItalicButton = document.querySelector('#selection-italic');
     const selectionQuoteButton = document.querySelector('#selection-quote');
+    const selectionCodeButton = document.querySelector('#selection-code');
     const selectionFormatMenuToggle = document.querySelector('#selection-format-menu-toggle');
     const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
     const selectionFormatMenu = document.querySelector('#selection-format-menu');
@@ -438,6 +447,11 @@
       updateHistoryButtons();
     }
 
+    function menuDisplayTitle(title) {
+      const chars = Array.from(title);
+      return chars.length > 15 ? chars.slice(0, 15).join('') + '…' : title;
+    }
+
     function renderDocumentMenu() {
       documentMenuOptions.replaceChildren();
       app.documents.forEach((doc) => {
@@ -455,7 +469,7 @@
         select.appendChild(documentMenuIcon.cloneNode(true));
         const label = document.createElement('span');
         label.className = 'document-menu-label';
-        label.textContent = title;
+        label.textContent = menuDisplayTitle(title);
         select.appendChild(label);
         if (doc.has_review) {
           const dot = document.createElement('span');
@@ -512,7 +526,7 @@
         label.appendChild(documentMenuIcon.cloneNode(true));
         const text = document.createElement('span');
         text.className = 'document-menu-label';
-        text.textContent = title;
+        text.textContent = menuDisplayTitle(title);
         label.appendChild(text);
         option.appendChild(label);
         const actions = document.createElement('div');
@@ -763,6 +777,24 @@
         && app.content.endsWith('\n\n');
     }
 
+    function decorateCodeBlocks(container, sourceContent = '') {
+      if (/^(?: {4}|\t)/.test(sourceContent)) container.dataset.codeStyle = 'indented';
+      container.querySelectorAll('pre').forEach((pre) => {
+        if (pre.classList.contains('canvas-code')) return;
+        const host = pre.parentElement;
+        if (!host) return;
+        pre.classList.add('canvas-code');
+        host.classList.add('canvas-code-host');
+        const actions = document.createElement('div');
+        actions.className = 'canvas-code-actions';
+        actions.dataset.canvasUi = 'true';
+        actions.contentEditable = 'false';
+        actions.setAttribute('role', 'toolbar');
+        actions.innerHTML = '<button type="button" contenteditable="false" data-code-action="wrap" aria-label="切换代码换行" title="切换代码换行" aria-pressed="false">换行</button><button type="button" contenteditable="false" data-code-action="copy" aria-label="复制代码" title="复制代码">复制</button>';
+        pre.before(actions);
+      });
+    }
+
     function renderBlocks() {
       hideSelectionToolbar();
       preview.innerHTML = '';
@@ -801,6 +833,7 @@
         } else {
           container.innerHTML = block.html.trim();
         }
+        decorateCodeBlocks(container, block.content);
         preview.appendChild(container);
       });
       if (hasEmptyBodySlot()) {
@@ -880,6 +913,7 @@
     function blockMarkdown(node) {
       if (node.nodeType === Node.TEXT_NODE) return node.nodeValue;
       if (node.nodeType !== Node.ELEMENT_NODE) return '';
+      if (node.hasAttribute('data-canvas-ui')) return '';
       const tag = node.tagName.toLowerCase();
       if (/^h[1-6]$/.test(tag)) return `${'#'.repeat(Number(tag[1]))} ${inlineMarkdown(node)}`;
       if (tag === 'p') return inlineMarkdown(node);
@@ -908,10 +942,26 @@
         const content = Array.from(node.childNodes).map(blockMarkdown).filter(Boolean).join('\n\n');
         return content.split('\n').map((line) => line ? `> ${line}` : '>').join('\n');
       }
-      if (tag === 'pre') return '```\n' + node.textContent.replace(/\n+$/, '') + '\n```';
+      if (tag === 'pre') {
+        const content = node.textContent.replace(/\n+$/, '');
+        if (node.closest('[data-code-style="indented"]')) {
+          return content.split('\n').map((line) => '    ' + line).join('\n');
+        }
+        return '```\n' + content + '\n```';
+      }
       if (tag === 'hr') return '---';
       if (tag === 'div') return Array.from(node.childNodes).map(blockMarkdown).filter(Boolean).join('\n\n');
       return inlineMarkdown(node).trim();
+    }
+
+    function blockHtmlForMatching(container) {
+      const copy = container.cloneNode(true);
+      copy.querySelectorAll('[data-canvas-ui]').forEach((node) => node.remove());
+      copy.querySelectorAll('.canvas-code-host').forEach((node) => node.classList.remove('canvas-code-host'));
+      copy.querySelectorAll('pre.canvas-code, pre.canvas-code-wrap').forEach((node) => {
+        node.classList.remove('canvas-code', 'canvas-code-wrap');
+      });
+      return copy.innerHTML.trim();
     }
 
     function serializeBlockContent(container) {
@@ -1014,8 +1064,12 @@
       selectionFormatMenuToggle.setAttribute('aria-expanded', 'false');
     }
 
+    function contentBlockElement(container) {
+      return Array.from(container.children).find((child) => !child.hasAttribute('data-canvas-ui')) || container.firstElementChild;
+    }
+
     function updateSelectionFormatMenu(context) {
-      const source = context.container.firstElementChild;
+      const source = contentBlockElement(context.container);
       const tag = source?.tagName;
       const value = tag === 'UL' && source.querySelector('input[type="checkbox"]')
         ? 'TASK'
@@ -1035,9 +1089,11 @@
       selectionBoldButton.setAttribute('aria-pressed', 'false');
       selectionItalicButton.setAttribute('aria-pressed', 'false');
       selectionQuoteButton.setAttribute('aria-pressed', 'false');
+      selectionCodeButton.setAttribute('aria-pressed', 'false');
       selectionBoldButton.disabled = false;
       selectionItalicButton.disabled = false;
       selectionQuoteButton.disabled = false;
+      selectionCodeButton.disabled = false;
       selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => { option.disabled = false; });
       closeSelectionFormatMenu();
     }
@@ -1091,9 +1147,14 @@
           selectionItalicButton.setAttribute('aria-pressed', 'false');
         }
         const crossBlock = context.containers.length > 1;
+        const source = contentBlockElement(context.container);
+        const isCodeBlock = source?.tagName === 'PRE';
+        const canToggleCode = !crossBlock && ['P', 'PRE'].includes(source?.tagName);
         selectionBoldButton.disabled = crossBlock;
         selectionItalicButton.disabled = crossBlock;
         selectionQuoteButton.disabled = crossBlock;
+        selectionCodeButton.disabled = !canToggleCode;
+        selectionCodeButton.setAttribute('aria-pressed', String(isCodeBlock));
         selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => {
           option.disabled = crossBlock && !['UL', 'OL', 'TASK'].includes(option.dataset.format);
         });
@@ -1115,7 +1176,7 @@
         range.setStart(first, 0);
         range.setEnd(last, last.childNodes.length);
       } else if (wholeBlock) {
-        range.selectNodeContents(state.container.firstElementChild || state.container);
+        range.selectNodeContents(contentBlockElement(state.container) || state.container);
       }
       restoreSelection(range);
       return { ...state, range };
@@ -1137,8 +1198,27 @@
       return true;
     }
 
+    function toggleSelectionCodeBlock() {
+      const state = restoreToolbarSelection(true);
+      if (!state || state.containers.length > 1) return;
+      const source = contentBlockElement(state.container);
+      if (!source || !['P', 'PRE'].includes(source.tagName)) return;
+      const isCodeBlock = source.tagName === 'PRE';
+      state.container.querySelectorAll('[data-canvas-ui]').forEach((node) => node.remove());
+      state.container.classList.remove('canvas-code-host');
+      const target = document.createElement(isCodeBlock ? 'p' : 'pre');
+      target.textContent = source.innerText || source.textContent || '';
+      state.container.replaceChildren(target);
+      if (!isCodeBlock) decorateCodeBlocks(state.container);
+      const range = document.createRange();
+      range.selectNodeContents(target);
+      restoreSelection(range);
+      state.container.dispatchEvent(new Event('input', { bubbles: true }));
+      syncSelectionToolbar();
+    }
+
     function convertContainerFormat(container, value) {
-      const source = container.firstElementChild || container;
+      const source = contentBlockElement(container) || container;
       const nestedList = source.matches('P, H1, H2, H3') && source.children.length === 1
         && source.firstElementChild?.matches('UL, OL') && source.textContent === source.firstElementChild.textContent
         ? source.firstElementChild
@@ -1205,7 +1285,7 @@
       if (state.containers.length === 1) {
         state.container.replaceChildren(convertContainerFormat(state.container, value));
         const range = document.createRange();
-        range.selectNodeContents(state.container.firstElementChild);
+        range.selectNodeContents(contentBlockElement(state.container));
         restoreSelection(range);
         state.container.dispatchEvent(new Event('input', { bubbles: true }));
         if (value === 'P' && state.container.children.length > 1) return saveActiveBlock(true);
@@ -1561,7 +1641,7 @@
       }
       const emptyBody = index === app.blocks.length && hasEmptyBodySlot();
       const clickedContainer = preview.querySelector('[data-block-index="' + index + '"]');
-      const clickedHtml = emptyBody ? '' : clickedContainer?.innerHTML.trim();
+      const clickedHtml = emptyBody ? '' : clickedContainer ? blockHtmlForMatching(clickedContainer) : '';
       const clickedDomCount = preview.querySelectorAll('.canvas-block').length;
       const previousEditingIndex = app.editing?.index;
       if (app.editing && !(await saveActiveBlock(true))) return;
@@ -1674,8 +1754,28 @@
       });
     }
 
+    async function handleCodeAction(event) {
+      const action = event.target.closest?.('[data-code-action]');
+      if (!action || !preview.contains(action)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const actions = action.closest('[data-canvas-ui]');
+      const pre = actions?.nextElementSibling;
+      if (!pre || pre.tagName !== 'PRE') return;
+      if (action.dataset.codeAction === 'copy') {
+        await copyText(pre.textContent || '', '已复制代码块');
+        return;
+      }
+      if (action.dataset.codeAction === 'wrap') {
+        const wrapped = pre.classList.toggle('canvas-code-wrap');
+        action.setAttribute('aria-pressed', String(wrapped));
+        action.textContent = wrapped ? '取消换行' : '换行';
+      }
+    }
+
     function handleBlockClick(event) {
       if (app.review) return;
+      if (event.target.closest?.('[data-code-action]')) return;
       if (event.target.closest('input[type="checkbox"]')) {
         event.stopPropagation();
         return;
@@ -1738,6 +1838,7 @@
       void beginBlockEdit(Number(container.dataset.blockIndex), event);
     }
 
+    preview.addEventListener('click', handleCodeAction);
     preview.addEventListener('click', handleBlockClick);
     preview.addEventListener('change', handleCheckboxChange);
     document.addEventListener('pointerdown', (event) => {
@@ -1753,9 +1854,10 @@
     selectionBoldButton.addEventListener('click', () => void applySelectionCommand('bold'));
     selectionItalicButton.addEventListener('click', () => void applySelectionCommand('italic'));
     selectionQuoteButton.addEventListener('click', () => {
-      const quoted = selectionState?.container?.firstElementChild?.matches('BLOCKQUOTE');
+      const quoted = selectionState?.container && contentBlockElement(selectionState.container)?.matches('BLOCKQUOTE');
       void applySelectionFormat(quoted ? 'P' : 'BLOCKQUOTE');
     });
+    selectionCodeButton.addEventListener('click', toggleSelectionCodeBlock);
     selectionFormatMenuToggle.addEventListener('click', () => {
       const opening = selectionFormatMenu.hidden;
       selectionFormatMenu.hidden = !opening;
@@ -1868,9 +1970,7 @@
       }
     }
 
-    async function copyAllContent() {
-      if (!(await save())) return;
-      const text = app.content;
+    async function copyText(text, successMessage) {
       const fallbackCopy = () => {
         const fallback = document.createElement('textarea');
         fallback.value = text;
@@ -1895,12 +1995,18 @@
         }
       } catch {
         setStatus('复制失败，请检查浏览器权限');
-        return;
+        return false;
       }
-      setStatus('已复制全文');
+      setStatus(successMessage);
       setTimeout(() => {
-        if (status.textContent === '已复制全文') setStatus('');
+        if (status.textContent === successMessage) setStatus('');
       }, 1400);
+      return true;
+    }
+
+    async function copyAllContent() {
+      if (!(await save())) return;
+      await copyText(app.content, '已复制全文');
     }
 
   </script>
