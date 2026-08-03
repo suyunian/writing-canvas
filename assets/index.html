@@ -23,25 +23,34 @@
     .export-options button { width: 100%; text-align: left; border: 0; }
     .export-options button:hover { background: var(--ui-hover); }
     .example-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 180px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
-    .example-options button { width: 100%; text-align: left; border: 0; }
+    .example-options button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; }
+    .example-options .mode-icon { flex: 0 0 auto; width: 16px; height: 16px; fill: currentColor; stroke: none; }
     .example-options button:hover { background: var(--ui-hover); }
-    .document-menu { position: relative; }
-    .document-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
+    .document-menu, .archive-menu { position: relative; }
+    .document-menu-options, .archive-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
     .document-menu-option { display: flex; align-items: center; gap: 2px; border-radius: 7px; }
     .document-menu-option:hover, .document-menu-option:focus-within, .document-menu-option.selected { background: var(--ui-hover); }
-    .document-menu-select { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; border: 0; background: transparent; text-align: left; }
+    .document-menu-select { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 32px; padding: 4px 8px; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; line-height: 1.4; text-align: left; }
     .document-menu-select:hover, .document-menu-select:focus-visible { background: transparent; }
     .document-menu-select[aria-current="true"] { font-weight: 600; }
-    .document-menu-create { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; border: 0; text-align: left; }
+    .document-menu-create { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; margin-top: 4px; padding: 4px 8px; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; line-height: 1.4; text-align: left; }
     .document-menu-create:hover, .document-menu-create:focus-visible { background: var(--ui-hover); }
     .document-menu-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 16px; height: 16px; margin-right: 3px; border: 0; border-radius: 50%; padding: 0; background: #9ca3af; color: #fff; opacity: 0; pointer-events: none; font-size: 12px; line-height: 1; }
     .document-menu-option:hover .document-menu-delete, .document-menu-option:focus-within .document-menu-delete { opacity: 1; pointer-events: auto; }
     .document-menu-delete:hover, .document-menu-delete:focus-visible { background: #6b7280; }
+    .document-menu-archive { background: transparent; color: var(--ui-text-muted); opacity: 1; pointer-events: auto; }
+    .document-menu-archive:hover, .document-menu-archive:focus-visible { background: transparent; color: var(--ui-text); }
+    .document-menu-delete .mode-icon, .document-menu-restore .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
     .document-menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .document-menu-archive-actions { display: flex; flex: 0 0 auto; gap: 3px; margin-right: 3px; }
+    .document-menu-restore { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 16px; height: 16px; margin-right: 3px; border: 0; border-radius: 50%; padding: 0; background: transparent; color: var(--ui-text-muted); opacity: 0; pointer-events: none; }
+    .document-menu-archived:hover .document-menu-restore, .document-menu-archived:focus-within .document-menu-restore { opacity: 1; pointer-events: auto; }
+    .document-menu-restore:hover, .document-menu-restore:focus-visible { background: var(--ui-hover); color: var(--ui-text); }
+    .archive-menu-empty { min-height: 32px; padding: 4px 8px; color: var(--ui-text-muted); font-size: 14px; line-height: 1.4; }
     .document-menu-review { width: 6px; height: 6px; border-radius: 50%; background: var(--ui-primary); }
     .mode-icon { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .document-menu .mode-icon, #default-button .mode-icon, #copy-button .mode-icon, #export-toggle .mode-icon { width: 16px; height: 16px; }
-    .document-menu .mode-icon, #default-button .mode-icon { fill: currentColor; stroke: none; }
+    .document-menu .mode-icon, .archive-menu .mode-icon, #default-button .mode-icon, #copy-button .mode-icon, #export-toggle .mode-icon { width: 16px; height: 16px; }
+    .document-menu .mode-icon, .archive-menu .mode-icon, #default-button .mode-icon { fill: currentColor; stroke: none; }
     #status { margin-left: auto; overflow: hidden; color: var(--ui-text-muted); font-size: 13px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
     #status:empty { display: none; }
     #reload-latest { display: none; }
@@ -114,7 +123,7 @@
     article pre { padding: 14px; border-radius: 7px; background: #111827; color: #e5e7eb; overflow-x: auto; }
     article code { padding: 2px 4px; border-radius: 4px; background: #eef2ff; }
     article pre code { padding: 0; background: transparent; }
-    article blockquote { margin-left: 0; padding-left: 15px; border-left: 3px solid #93c5fd; color: #475569; }
+    article blockquote { margin-left: 0; padding-left: 15px; border-left: 3px solid var(--ui-border-strong); color: var(--ui-text-muted); }
     article table { width: 100%; margin: 16px 0; border-collapse: collapse; font-size: .95em; }
     article th, article td { padding: 8px 10px; border: 1px solid var(--ui-border); text-align: left; vertical-align: top; }
     article th { background: var(--ui-surface-subtle); color: var(--ui-text); font-weight: 600; }
@@ -140,7 +149,7 @@
       main { display: block; padding: 10px; }
       .outline-sidebar { position: fixed; top: 61px; right: 0; bottom: 0; left: auto; width: min(280px, 85vw); max-height: none; padding: 30px 10px 10px; overflow: visible; z-index: 3; background: var(--ui-surface); box-shadow: -4px 0 16px rgba(15, 23, 42, .06); transform: translateX(0); }
       main:not(.outline-open) .outline-sidebar { transform: translateX(calc(100% - 44px)); padding: 30px 0 10px; background: transparent; box-shadow: none; }
-      main:not(.outline-open) .outline-sidebar .outline-toggle { border: 1px solid var(--ui-border); border-right: 0; border-radius: 8px 0 0 8px; background: var(--ui-surface); }
+      main:not(.outline-open) .outline-sidebar .outline-toggle { border-radius: 8px 0 0 8px; background: var(--ui-surface); }
       main:not(.outline-open) .outline-sidebar .outline-toggle { width: 44px; height: 44px; padding: 11px 13px; }
       main:not(.outline-open) .outline-toggle .outline-collapsed-icon { display: none; }
       main:not(.outline-open) .outline-toggle .outline-mobile-icon { display: block; width: 18px; height: 18px; }
@@ -179,6 +188,12 @@
           <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 8V20.9932C21 21.5501 20.5552 22 20.0066 22H3.9934C3.44495 22 3 21.556 3 21.0082V2.9918C3 2.45531 3.4487 2 4.00221 2H14.9968L21 8ZM19 9H14V4H5V20H19V9ZM8 7H11V9H8V7ZM8 11H16V13H8V11ZM8 15H16V17H8V15Z"></path></svg>
         </button>
         <div id="document-menu-options" class="document-menu-options" hidden role="menu"></div>
+      </div>
+      <div class="archive-menu">
+        <button id="archive-menu-toggle" class="icon-button" type="button" aria-label="归档" title="归档" aria-expanded="false" aria-controls="archive-menu-options">
+          <svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 10H2V4.00293C2 3.44903 2.45531 3 2.9918 3H21.0082C21.556 3 22 3.43788 22 4.00293V10H21V20.0015C21 20.553 20.5551 21 20.0066 21H3.9934C3.44476 21 3 20.5525 3 20.0015V10ZM19 10H5V19H19V10ZM4 5V8H20V5H4ZM9 12H15V14H9V12Z"></path></svg>
+        </button>
+        <div id="archive-menu-options" class="archive-menu-options" hidden role="menu"></div>
       </div>
       <div id="example-menu" class="example-menu">
         <button id="default-button" class="icon-button" type="button" aria-label="导入范例" title="导入范例" aria-expanded="false" aria-controls="example-options">
@@ -252,9 +267,15 @@
     const exampleOptions = document.querySelector('#example-options');
     const importTeslaExampleButton = document.querySelector('#import-tesla-example');
     const importXiaomiExampleButton = document.querySelector('#import-xiaomi-example');
+    const exampleMenuIcon = defaultButton.querySelector('.mode-icon');
+    [importTeslaExampleButton, importXiaomiExampleButton].forEach((button) => {
+      button.prepend(exampleMenuIcon.cloneNode(true));
+    });
     const documentMenuToggle = document.querySelector('#document-menu-toggle');
     const documentMenuIcon = documentMenuToggle.querySelector('.mode-icon');
-    const documentMenuOptions = document.querySelector('#document-menu-options');
+      const documentMenuOptions = document.querySelector('#document-menu-options');
+      const archiveMenuToggle = document.querySelector('#archive-menu-toggle');
+      const archiveMenuOptions = document.querySelector('#archive-menu-options');
     const outlineToggle = document.querySelector('#outline-toggle');
     const outlinePanel = document.querySelector('#outline-panel');
     const outlineList = document.querySelector('#outline-list');
@@ -267,7 +288,7 @@
     const selectionFormatMenuToggle = document.querySelector('#selection-format-menu-toggle');
     const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
     const selectionFormatMenu = document.querySelector('#selection-format-menu');
-    const app = { documentId: null, documents: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false };
+    const app = { documentId: null, documents: [], archivedDocuments: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false };
     let outlineEntries = [];
     let outlineScrollFrame = 0;
     let outlineScrollEndTimer = 0;
@@ -382,6 +403,13 @@
       app.redoStack = history.redoStack;
     }
 
+    function applyDocumentListing(listing) {
+      app.documents = listing.documents || [];
+      app.archivedDocuments = listing.archived_documents || [];
+      renderDocumentMenu();
+      renderArchiveMenu();
+    }
+
     function updateDocumentEntry(next) {
       const entry = app.documents.find((document) => document.id === next.document_id);
       if (entry) {
@@ -435,15 +463,15 @@
         });
         option.appendChild(select);
         const remove = document.createElement('button');
-        remove.className = 'document-menu-delete';
+        remove.className = 'document-menu-delete document-menu-archive';
         remove.type = 'button';
         remove.role = 'menuitem';
-        remove.title = `删除${title}`;
-        remove.setAttribute('aria-label', `删除${title}`);
-        remove.textContent = '×';
+        remove.title = '归档';
+        remove.setAttribute('aria-label', '归档');
+        remove.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 10H2V4.00293C2 3.44903 2.45531 3 2.9918 3H21.0082C21.556 3 22 3.43788 22 4.00293V10H21V20.0015C21 20.553 20.5551 21 20.0066 21H3.9934C3.44476 21 3 20.5525 3 20.0015V10ZM19 10H5V19H19V10ZM4 5V8H20V5H4ZM9 12H15V14H9V12Z"></path></svg>';
         remove.addEventListener('click', (event) => {
           event.stopPropagation();
-          void deleteDocument(doc.id, title);
+          void archiveDocument(doc.id, title);
         });
         option.appendChild(remove);
         documentMenuOptions.appendChild(option);
@@ -455,6 +483,61 @@
       create.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 2.00318V2H19.9978C20.5513 2 21 2.45531 21 2.9918V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5501 3 20.9932V8L9 2.00318ZM5.82918 8H9V4.83086L5.82918 8ZM11 4V9C11 9.55228 10.5523 10 10 10H5V20H19V4H11Z"></path></svg><span>新建文档</span>';
       create.addEventListener('click', () => void createDocument());
       documentMenuOptions.appendChild(create);
+    }
+
+    function renderArchiveMenu() {
+      archiveMenuOptions.replaceChildren();
+      if (!app.archivedDocuments.length) {
+        const empty = document.createElement('div');
+        empty.className = 'archive-menu-empty';
+        empty.textContent = '暂无归档文档';
+        archiveMenuOptions.appendChild(empty);
+        return;
+      }
+      app.archivedDocuments.forEach((doc) => {
+        const title = doc.title || '未命名文档';
+        const option = document.createElement('div');
+        option.className = 'document-menu-option document-menu-archived';
+        option.setAttribute('role', 'none');
+        const label = document.createElement('div');
+        label.className = 'document-menu-select';
+        label.title = title;
+        label.setAttribute('aria-label', `${title}，已归档`);
+        label.appendChild(documentMenuIcon.cloneNode(true));
+        const text = document.createElement('span');
+        text.className = 'document-menu-label';
+        text.textContent = title;
+        label.appendChild(text);
+        option.appendChild(label);
+        const actions = document.createElement('div');
+        actions.className = 'document-menu-archive-actions';
+        const restore = document.createElement('button');
+        restore.className = 'document-menu-restore';
+        restore.type = 'button';
+        restore.role = 'menuitem';
+        restore.title = '恢复';
+        restore.setAttribute('aria-label', '恢复');
+        restore.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5.82843 6.99955L8.36396 9.53509L6.94975 10.9493L2 5.99955L6.94975 1.0498L8.36396 2.46402L5.82843 4.99955H13C17.4183 4.99955 21 8.58127 21 12.9996C21 17.4178 17.4183 20.9996 13 20.9996H4V18.9996H13C16.3137 18.9996 19 16.3133 19 12.9996C19 9.68584 16.3133 6.99955 13 6.99955H5.82843Z"></path></svg>';
+        restore.addEventListener('click', (event) => {
+          event.stopPropagation();
+          void restoreDocument(doc.id);
+        });
+        actions.appendChild(restore);
+        const permanentlyDelete = document.createElement('button');
+        permanentlyDelete.className = 'document-menu-delete';
+        permanentlyDelete.type = 'button';
+        permanentlyDelete.role = 'menuitem';
+        permanentlyDelete.title = '永久删除';
+        permanentlyDelete.setAttribute('aria-label', '永久删除');
+        permanentlyDelete.textContent = '×';
+        permanentlyDelete.addEventListener('click', (event) => {
+          event.stopPropagation();
+          void permanentlyDeleteDocument(doc.id, title);
+        });
+        actions.appendChild(permanentlyDelete);
+        option.appendChild(actions);
+        archiveMenuOptions.appendChild(option);
+      });
     }
 
     function updateHistoryButtons() {
@@ -512,18 +595,17 @@
       }
     }
 
-    async function deleteDocument(documentId, title) {
+    async function archiveDocument(documentId, title) {
       if (!documentId || app.historyBusy || app.reviewBusy) return;
-      if (!window.confirm(`确认删除“${title}”吗？此操作不可恢复。`)) return;
       if (!(await save())) return;
       closeDocumentMenu();
+      closeArchiveMenu();
       try {
         const listing = await request('/api/documents/delete', {
           method: 'POST',
           body: JSON.stringify({ document_id: documentId })
         });
-        app.documents = listing.documents || [];
-        renderDocumentMenu();
+        applyDocumentListing(listing);
         if (listing.active_id && listing.active_id !== app.documentId) {
           await switchDocument(listing.active_id, false);
         } else if (!listing.active_id) {
@@ -533,6 +615,44 @@
           setStatus('');
         }
         delete app.histories[documentId];
+        setStatus('已归档文档');
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function restoreDocument(documentId) {
+      if (!documentId || app.historyBusy || app.reviewBusy) return;
+      if (!(await save())) return;
+      closeDocumentMenu();
+      closeArchiveMenu();
+      try {
+        const listing = await request('/api/documents/restore', {
+          method: 'POST',
+          body: JSON.stringify({ document_id: documentId })
+        });
+        applyDocumentListing(listing);
+        if (!app.documentId && listing.active_id) await switchDocument(listing.active_id, false);
+        setStatus('已恢复文档');
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function permanentlyDeleteDocument(documentId, title) {
+      if (!documentId || app.historyBusy || app.reviewBusy) return;
+      if (!window.confirm(`确认永久删除“${title}”吗？此操作不可恢复。`)) return;
+      if (!(await save())) return;
+      closeDocumentMenu();
+      closeArchiveMenu();
+      try {
+        const listing = await request('/api/documents/permanent-delete', {
+          method: 'POST',
+          body: JSON.stringify({ document_id: documentId })
+        });
+        applyDocumentListing(listing);
+        delete app.histories[documentId];
+        setStatus('');
       } catch (error) {
         setStatus(error.message);
       }
@@ -563,8 +683,7 @@
     async function syncCanvas() {
       try {
         const listing = await request('/api/documents');
-        app.documents = listing.documents || [];
-        renderDocumentMenu();
+        applyDocumentListing(listing);
         if (!listing.active_id && !app.documents.length) {
           if (app.documentId) clearDocumentState();
           else {
@@ -1579,6 +1698,7 @@
     reloadButton.addEventListener('click', () => loadState(true));
     defaultButton.addEventListener('click', () => {
       closeDocumentMenu();
+      closeArchiveMenu();
       closeExportMenu();
       const opening = exampleOptions.hidden;
       exampleOptions.hidden = !opening;
@@ -1592,12 +1712,22 @@
     outlineToggle.addEventListener('click', () => setOutlineOpen(outlineToggle.getAttribute('aria-expanded') !== 'true'));
     documentMenuToggle.addEventListener('click', () => {
       closeExportMenu();
+      closeArchiveMenu();
       const opening = documentMenuOptions.hidden;
       documentMenuOptions.hidden = !opening;
       documentMenuToggle.setAttribute('aria-expanded', String(opening));
     });
+    archiveMenuToggle.addEventListener('click', () => {
+      closeDocumentMenu();
+      closeExportMenu();
+      closeExampleMenu();
+      const opening = archiveMenuOptions.hidden;
+      archiveMenuOptions.hidden = !opening;
+      archiveMenuToggle.setAttribute('aria-expanded', String(opening));
+    });
     exportToggleButton.addEventListener('click', () => {
       closeDocumentMenu();
+      closeArchiveMenu();
       const opening = exportOptions.hidden;
       exportOptions.hidden = !opening;
       exportToggleButton.setAttribute('aria-expanded', String(opening));
@@ -1607,6 +1737,7 @@
     document.addEventListener('click', (event) => {
       if (!event.target.closest('.export-menu')) closeExportMenu();
       if (!event.target.closest('.document-menu')) closeDocumentMenu();
+      if (!event.target.closest('.archive-menu')) closeArchiveMenu();
       if (!event.target.closest('.example-menu')) closeExampleMenu();
       if (!event.target.closest('.selection-format-menu-wrap')) closeSelectionFormatMenu();
     });
@@ -1614,6 +1745,7 @@
       if (event.key === 'Escape') {
         closeExportMenu();
         closeDocumentMenu();
+        closeArchiveMenu();
         closeExampleMenu();
         closeSelectionFormatMenu();
       }
@@ -1633,6 +1765,11 @@
     function closeDocumentMenu() {
       documentMenuOptions.hidden = true;
       documentMenuToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeArchiveMenu() {
+      archiveMenuOptions.hidden = true;
+      archiveMenuToggle.setAttribute('aria-expanded', 'false');
     }
 
     function closeExampleMenu() {

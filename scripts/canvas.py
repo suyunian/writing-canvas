@@ -112,10 +112,29 @@ def ensure_data_dir(data_dir: Path) -> None:
             {
                 "active_id": MAIN_DOCUMENT_ID,
                 "documents": [{"id": MAIN_DOCUMENT_ID, "title": document_title(content)}],
+                "archived_documents": [],
             },
             ensure_ascii=False,
         ),
     )
+
+
+def document_records(payload: Any, key: str, required: bool = False) -> list[dict[str, str]]:
+    raw_records = payload.get(key) if isinstance(payload, dict) else None
+    if raw_records is None and not required:
+        raw_records = []
+    if not isinstance(raw_records, list):
+        raise CanvasError("文档索引格式无效。")
+    records: list[dict[str, str]] = []
+    for record in raw_records:
+        if not isinstance(record, dict):
+            raise CanvasError("文档索引格式无效。")
+        document_id = validate_document_id(record.get("id"))
+        title = record.get("title")
+        if not isinstance(title, str) or not title.strip():
+            raise CanvasError("文档标题格式无效。")
+        records.append({"id": document_id, "title": title})
+    return records
 
 
 def load_documents_index_unlocked(data_dir: Path) -> dict[str, Any]:
@@ -126,21 +145,20 @@ def load_documents_index_unlocked(data_dir: Path) -> dict[str, Any]:
         raise CanvasError("文档索引损坏，请从备份恢复。") from error
     if not isinstance(payload, dict) or not isinstance(payload.get("documents"), list):
         raise CanvasError("文档索引格式无效。")
-    records: list[dict[str, str]] = []
-    for record in payload["documents"]:
-        if not isinstance(record, dict):
-            raise CanvasError("文档索引格式无效。")
-        document_id = validate_document_id(record.get("id"))
-        title = record.get("title")
-        if not isinstance(title, str) or not title.strip():
-            raise CanvasError("文档标题格式无效。")
-        records.append({"id": document_id, "title": title})
+    records = document_records(payload, "documents", required=True)
+    archived_records = document_records(payload, "archived_documents")
+    if {record["id"] for record in records} & {record["id"] for record in archived_records}:
+        raise CanvasError("文档索引中存在重复文档。")
     if not records:
-        return {"active_id": None, "documents": []}
+        return {"active_id": None, "documents": [], "archived_documents": archived_records}
     active_id = payload.get("active_id")
     if active_id not in {record["id"] for record in records}:
         active_id = records[0]["id"]
-    return {"active_id": active_id, "documents": records}
+    return {
+        "active_id": active_id,
+        "documents": records,
+        "archived_documents": archived_records,
+    }
 
 
 def write_documents_index_unlocked(data_dir: Path, index: dict[str, Any]) -> None:
@@ -315,7 +333,11 @@ def documents_state_unlocked(data_dir: Path) -> dict[str, Any]:
                 "revision": revision_for(content),
             }
         )
-    return {"active_id": index["active_id"], "documents": documents}
+    return {
+        "active_id": index["active_id"],
+        "documents": documents,
+        "archived_documents": index["archived_documents"],
+    }
 
 
 def document_title(content: str) -> str:
@@ -642,7 +664,10 @@ def create_document(
 ) -> dict[str, Any]:
     with data_lock(data_dir):
         index = load_documents_index_unlocked(data_dir)
-        existing_ids = {record["id"] for record in index["documents"]}
+        existing_ids = {
+            record["id"]
+            for record in index["documents"] + index["archived_documents"]
+        }
         document_id = "doc-" + uuid.uuid4().hex[:10]
         while document_id in existing_ids:
             document_id = "doc-" + uuid.uuid4().hex[:10]
@@ -669,14 +694,52 @@ def delete_document(data_dir: Path, document_id: str) -> dict[str, Any]:
     with data_lock(data_dir):
         index = load_documents_index_unlocked(data_dir)
         target_id = resolve_document_id_unlocked(data_dir, document_id)
-        index["documents"] = [
-            record for record in index["documents"] if record["id"] != target_id
-        ]
+        record = next(record for record in index["documents"] if record["id"] == target_id)
+        content = load_unlocked(data_dir, target_id)
+        record["title"] = document_title(content)
+        index["documents"].remove(record)
+        index["archived_documents"].append(record)
         if index["active_id"] == target_id:
             index["active_id"] = index["documents"][0]["id"] if index["documents"] else None
+        write_documents_index_unlocked(data_dir, index)
+        return documents_state_unlocked(data_dir)
+
+
+def restore_document(data_dir: Path, document_id: str) -> dict[str, Any]:
+    with data_lock(data_dir):
+        index = load_documents_index_unlocked(data_dir)
+        target_id = validate_document_id(document_id)
+        record = next(
+            (record for record in index["archived_documents"] if record["id"] == target_id),
+            None,
+        )
+        if record is None:
+            raise CanvasError("归档文档不存在，请刷新列表。")
+        if not document_path(data_dir, target_id).is_file():
+            raise CanvasError("归档文档文件不存在，请从备份恢复。")
+        index["archived_documents"].remove(record)
+        index["documents"].append(record)
+        if index["active_id"] is None:
+            index["active_id"] = target_id
+        write_documents_index_unlocked(data_dir, index)
+        return documents_state_unlocked(data_dir)
+
+
+def permanently_delete_document(data_dir: Path, document_id: str) -> dict[str, Any]:
+    with data_lock(data_dir):
+        index = load_documents_index_unlocked(data_dir)
+        target_id = validate_document_id(document_id)
+        record = next(
+            (record for record in index["archived_documents"] if record["id"] == target_id),
+            None,
+        )
+        if record is None:
+            raise CanvasError("只能永久删除归档文档。")
         document_dir = document_path(data_dir, target_id).parent
-        if document_dir.exists():
-            shutil.rmtree(document_dir)
+        if not document_dir.is_dir():
+            raise CanvasError("归档文档文件不存在，请从备份恢复。")
+        shutil.rmtree(document_dir)
+        index["archived_documents"].remove(record)
         write_documents_index_unlocked(data_dir, index)
         return documents_state_unlocked(data_dir)
 
@@ -912,6 +975,8 @@ class CanvasHandler(BaseHTTPRequestHandler):
             if path not in {
                 "/api/documents",
                 "/api/documents/delete",
+                "/api/documents/restore",
+                "/api/documents/permanent-delete",
                 "/api/documents/active",
                 "/api/document",
                 "/api/document/block",
@@ -937,6 +1002,16 @@ class CanvasHandler(BaseHTTPRequestHandler):
                 if not isinstance(document_id, str):
                     raise CanvasError("document_id 必须是字符串")
                 send_json(self, delete_document(self.data_dir, document_id))
+                return
+            if path == "/api/documents/restore":
+                if not isinstance(document_id, str):
+                    raise CanvasError("document_id 必须是字符串")
+                send_json(self, restore_document(self.data_dir, document_id))
+                return
+            if path == "/api/documents/permanent-delete":
+                if not isinstance(document_id, str):
+                    raise CanvasError("document_id 必须是字符串")
+                send_json(self, permanently_delete_document(self.data_dir, document_id))
                 return
             if path == "/api/documents/active":
                 if not isinstance(document_id, str):
@@ -1081,8 +1156,19 @@ def self_check() -> None:
         "async function importExampleContent(exampleId)",
         "/api/default?example=",
         "await createDocument(content);",
-        "async function deleteDocument(documentId, title)",
+        "async function archiveDocument(documentId, title)",
+        "async function restoreDocument(documentId)",
+        "async function permanentlyDeleteDocument(documentId, title)",
         "/api/documents/delete",
+        "/api/documents/restore",
+        "/api/documents/permanent-delete",
+        "archivedDocuments",
+        'id="archive-menu-toggle"',
+        "function renderArchiveMenu()",
+        "archive-menu-options",
+        "document-menu-restore",
+        "M3 10H2V4.00293",
+        "M5.82843 6.99955L8.36396",
         "document-menu-delete",
         "function renderOutline()",
         "暂无可用大纲",
@@ -1168,18 +1254,30 @@ def self_check() -> None:
         listing = list_documents(data_dir)
         assert listing["active_id"] == MAIN_DOCUMENT_ID
         assert [document["id"] for document in listing["documents"]] == [MAIN_DOCUMENT_ID]
+        assert listing["archived_documents"] == []
         draft = create_document(data_dir, "# 未命名文档\n\n")
         assert draft["title"] == "未命名文档"
         body = write_document_block(data_dir, 1, 2, "正文。\n", draft["revision"], draft["document_id"])
         assert body["content"] == "# 未命名文档\n正文。\n"
         cleared = write_document_block(data_dir, 1, 2, "\n", body["revision"], draft["document_id"])
         assert cleared["content"] == "# 未命名文档\n\n"
+        archived = delete_document(data_dir, draft["document_id"])
+        assert [document["id"] for document in archived["documents"]] == [MAIN_DOCUMENT_ID]
+        assert [document["id"] for document in archived["archived_documents"]] == [draft["document_id"]]
+        assert document_path(data_dir, draft["document_id"]).exists()
+        restored = restore_document(data_dir, draft["document_id"])
+        assert [document["id"] for document in restored["documents"]] == [MAIN_DOCUMENT_ID, draft["document_id"]]
+        assert restored["archived_documents"] == []
         delete_document(data_dir, draft["document_id"])
+        purged = permanently_delete_document(data_dir, draft["document_id"])
+        assert purged["archived_documents"] == []
+        assert not document_path(data_dir, draft["document_id"]).exists()
         blank = create_document(data_dir)
         assert blank["title"] == "未命名文档"
         assert blank["content"] == ""
         assert read_state(data_dir, MAIN_DOCUMENT_ID)["content"] == initial
         delete_document(data_dir, blank["document_id"])
+        permanently_delete_document(data_dir, blank["document_id"])
         created = create_document(data_dir, "# 第二文档\n\n第二份内容。\n", "第二文档")
         assert created["document_id"] != MAIN_DOCUMENT_ID
         assert created["title"] == "第二文档"
@@ -1208,9 +1306,22 @@ def self_check() -> None:
         deleted = delete_document(data_dir, created["document_id"])
         assert deleted["active_id"] == MAIN_DOCUMENT_ID
         assert [document["id"] for document in deleted["documents"]] == [MAIN_DOCUMENT_ID]
+        assert [document["id"] for document in deleted["archived_documents"]] == [created["document_id"]]
+        assert document_path(data_dir, created["document_id"]).exists()
+        deleted = permanently_delete_document(data_dir, created["document_id"])
+        assert deleted["archived_documents"] == []
         assert not document_path(data_dir, created["document_id"]).exists()
         empty = delete_document(data_dir, MAIN_DOCUMENT_ID)
-        assert empty == {"active_id": None, "documents": []}
+        assert empty["active_id"] is None
+        assert empty["documents"] == []
+        assert [document["id"] for document in empty["archived_documents"]] == [MAIN_DOCUMENT_ID]
+        assert document_path(data_dir, MAIN_DOCUMENT_ID).exists()
+        restored_empty = restore_document(data_dir, MAIN_DOCUMENT_ID)
+        assert restored_empty["active_id"] == MAIN_DOCUMENT_ID
+        assert read_state(data_dir, MAIN_DOCUMENT_ID)["content"] == initial
+        delete_document(data_dir, MAIN_DOCUMENT_ID)
+        empty = permanently_delete_document(data_dir, MAIN_DOCUMENT_ID)
+        assert empty == {"active_id": None, "documents": [], "archived_documents": []}
         assert not document_path(data_dir, MAIN_DOCUMENT_ID).exists()
         recreated = create_document(data_dir, "# 重建文档\n")
         assert recreated["title"] == "重建文档"

@@ -36,6 +36,8 @@ are not created or migrated.
 5. If the app opener is unavailable or reports that it cannot open the page,
    return the local URL and state that it must be opened in Codex's in-app
    Browser. Do not substitute another browser.
+6. After opening or falling back to the URL, always include the returned URL as
+   `[重新打开写作画布](<url>)` in the final response.
 
 ## Canvas behavior
 
