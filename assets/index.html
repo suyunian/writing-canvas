@@ -1,0 +1,1670 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codex Desk</title>
+  <style>
+    :root { --outline-motion-duration: .24s; --outline-motion-ease: cubic-bezier(.22, 1, .36, 1); --ui-surface: #fff; --ui-surface-subtle: #f7f7f8; --ui-border: #e5e5e5; --ui-border-strong: #d1d5db; --ui-text: #2f2f2f; --ui-text-muted: #6b6b6b; --ui-hover: #f1f1f1; --ui-active: #e8e8e8; --ui-primary: #3b82f6; --ui-primary-strong: #2563eb; color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ui-text); background: var(--ui-surface); }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 0; background: var(--ui-surface); }
+    header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; padding: 14px 20px; background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); position: sticky; top: 0; z-index: 2; }
+    h1 { min-width: 0; margin: 0; overflow: hidden; font-size: 18px; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
+    button { border: 1px solid var(--ui-border); border-radius: 7px; background: var(--ui-surface); color: var(--ui-text); padding: 7px 11px; cursor: pointer; }
+    .toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
+    .toolbar .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 7px; border: 0; border-radius: 50%; background: transparent; transition: background-color .15s ease, color .15s ease; }
+    .toolbar .icon-button:hover, .toolbar .icon-button:focus-visible { background: var(--ui-hover); color: var(--ui-text); }
+    .toolbar .icon-button:active { background: var(--ui-active); }
+    .toolbar .icon-button:disabled { opacity: .4; cursor: default; }
+    .toolbar .icon-button:disabled:hover { background: transparent; }
+    #undo-button .mode-icon, #redo-button .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+    .export-menu, .example-menu { position: relative; }
+    .export-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 118px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); }
+    .export-options button { width: 100%; text-align: left; border: 0; }
+    .export-options button:hover { background: var(--ui-hover); }
+    .example-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 180px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
+    .example-options button { width: 100%; text-align: left; border: 0; }
+    .example-options button:hover { background: var(--ui-hover); }
+    .document-menu { position: relative; }
+    .document-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
+    .document-menu-option { display: flex; align-items: center; gap: 2px; border-radius: 7px; }
+    .document-menu-option:hover, .document-menu-option:focus-within, .document-menu-option.selected { background: var(--ui-hover); }
+    .document-menu-select { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; border: 0; background: transparent; text-align: left; }
+    .document-menu-select:hover, .document-menu-select:focus-visible { background: transparent; }
+    .document-menu-select[aria-current="true"] { font-weight: 600; }
+    .document-menu-create { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 4px; border: 0; text-align: left; }
+    .document-menu-create:hover, .document-menu-create:focus-visible { background: var(--ui-hover); }
+    .document-menu-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 16px; height: 16px; margin-right: 3px; border: 0; border-radius: 50%; padding: 0; background: #9ca3af; color: #fff; opacity: 0; pointer-events: none; font-size: 12px; line-height: 1; }
+    .document-menu-option:hover .document-menu-delete, .document-menu-option:focus-within .document-menu-delete { opacity: 1; pointer-events: auto; }
+    .document-menu-delete:hover, .document-menu-delete:focus-visible { background: #6b7280; }
+    .document-menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .document-menu-review { width: 6px; height: 6px; border-radius: 50%; background: var(--ui-primary); }
+    .mode-icon { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .document-menu .mode-icon, #default-button .mode-icon, #copy-button .mode-icon, #export-toggle .mode-icon { width: 16px; height: 16px; }
+    .document-menu .mode-icon, #default-button .mode-icon { fill: currentColor; stroke: none; }
+    #status { margin-left: auto; overflow: hidden; color: var(--ui-text-muted); font-size: 13px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+    #status:empty { display: none; }
+    #reload-latest { display: none; }
+    .selection-toolbar { position: fixed; top: 0; left: 0; display: flex; align-items: center; gap: 3px; max-width: calc(100vw - 16px); padding: 5px 6px; border: 1px solid var(--ui-border-strong); border-radius: 18px; background: var(--ui-surface); box-shadow: 0 4px 14px rgba(15, 23, 42, .14); z-index: 4; }
+    .selection-format-handle { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; color: var(--ui-text-muted); }
+    .selection-format-handle svg { display: block; width: 16px; height: 16px; fill: currentColor; }
+    .selection-format-button { min-width: 30px; height: 30px; padding: 4px 8px; border: 0; border-radius: 10px; font-size: 15px; line-height: 1; }
+    .selection-format-button:hover, .selection-format-button:focus-visible, .selection-format-button[aria-pressed="true"] { background: var(--ui-hover); }
+    .selection-format-button:active { background: var(--ui-active); }
+    .selection-format-menu-wrap { position: relative; }
+    .selection-format-menu-toggle { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 4px 9px; border: 0; border-radius: 10px; background: transparent; font-size: 15px; white-space: nowrap; }
+    .selection-format-menu-toggle:hover, .selection-format-menu-toggle:focus-visible, .selection-format-menu-toggle[aria-expanded="true"] { background: var(--ui-hover); outline: none; }
+    .selection-format-chevron { display: block; flex: 0 0 auto; width: 14px; height: 14px; color: var(--ui-text-muted); }
+    .selection-format-chevron path { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+    .selection-format-menu { position: absolute; top: calc(100% + 8px); right: 0; display: grid; gap: 1px; min-width: 180px; max-width: min(280px, calc(100vw - 16px)); padding: 5px; border: 1px solid var(--ui-border-strong); border-radius: 14px; background: var(--ui-surface); box-shadow: 0 8px 20px rgba(15, 23, 42, .16); }
+    .selection-format-menu button { width: 100%; padding: 6px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-size: 15px; line-height: 1.35; }
+    .selection-format-menu button[data-format^="H"] { font-weight: 700; }
+    .selection-format-menu button:hover, .selection-format-menu button:focus-visible, .selection-format-menu button[aria-current="true"] { background: var(--ui-hover); outline: none; }
+    main { display: block; position: relative; padding: 16px; max-width: 1200px; margin: 0 auto; transition: grid-template-columns var(--outline-motion-duration) var(--outline-motion-ease); }
+    .outline-sidebar { min-width: 0; position: absolute; top: 16px; left: 16px; width: min(280px, calc(100% - 32px)); z-index: 1; overflow: visible; transition: width var(--outline-motion-duration) var(--outline-motion-ease), transform var(--outline-motion-duration) var(--outline-motion-ease), box-shadow var(--outline-motion-duration) var(--outline-motion-ease); }
+    .outline-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 7px; border: 0; border-radius: 50%; background: transparent; color: var(--ui-text); }
+    .outline-toggle:hover, .outline-toggle:focus-visible { background: var(--ui-hover); color: var(--ui-text); }
+    .outline-toggle:active { background: var(--ui-active); }
+    .outline-toggle .mode-icon { width: 20px; height: 20px; }
+    .outline-mobile-icon { display: none; }
+    .outline-toggle .mode-icon[hidden] { display: none; }
+    .outline-toggle .outline-collapsed-icon { fill: currentColor; stroke: none; }
+    .outline-panel { position: absolute; top: 44px; right: 0; left: 0; max-height: calc(100vh - 116px); overflow: hidden; padding: 10px 8px 10px 0; opacity: 0; clip-path: inset(0 100% 0 0); visibility: hidden; pointer-events: none; transition: clip-path var(--outline-motion-duration) var(--outline-motion-ease), opacity var(--outline-motion-duration) var(--outline-motion-ease), visibility 0s linear var(--outline-motion-duration); }
+    main.outline-open .outline-panel { overflow-y: auto; opacity: 1; clip-path: inset(0); visibility: visible; pointer-events: auto; transition-delay: 0s; }
+    .outline-list { display: grid; gap: 2px; }
+    .outline-item { width: 100%; min-width: 0; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ui-text-muted); font-size: 14px; line-height: 1.4; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .outline-item:hover, .outline-item:focus-visible, .outline-item.active { background: var(--ui-hover); color: var(--ui-text); }
+    .outline-item.active { font-weight: 600; }
+    .outline-empty { padding: 8px; color: #94a3b8; font-size: 14px; }
+    .workspace { width: 100%; max-width: 210mm; margin: 0 auto; padding: 0 1px; background: var(--ui-surface); border: 0; border-radius: 10px; box-shadow: none; min-height: calc(100vh - 90px); overflow: hidden; }
+    article { padding: 26px 30px; min-height: calc(100vh - 122px); line-height: 1.75; overflow-wrap: anywhere; }
+    .canvas-block { display: flow-root; border-radius: 8px; cursor: text; }
+    .canvas-block:hover { background: transparent; }
+    .canvas-block:focus-visible { outline: none; }
+    .canvas-block.editing { background: transparent; box-shadow: none; }
+    .canvas-block[contenteditable="true"] { cursor: text; }
+    .canvas-block[contenteditable="true"]:focus { outline: none; }
+    .canvas-block[data-block-index="0"] > p { min-height: 1.75em; margin: 0; }
+    .canvas-block + .canvas-block > p { margin-top: 12px; }
+    .review-change { position: relative; margin: 36px 0 22px; padding-top: 26px; }
+    .review-actions { position: absolute; top: 0; left: 50%; display: flex; gap: 4px; padding: 7px; border: 1px solid var(--ui-border-strong); border-radius: 18px; background: var(--ui-surface); box-shadow: 0 4px 12px rgba(15, 23, 42, .14); transform: translate(-50%, -50%); z-index: 1; }
+    .review-actions button { border: 0; border-radius: 13px; padding: 7px 13px; background: transparent; font-size: 15px; font-weight: 600; }
+    .review-actions button:hover { background: var(--ui-hover); }
+    .review-actions .accept { background: var(--ui-primary); color: #fff; }
+    .review-actions .accept:hover { background: var(--ui-primary-strong); }
+    .review-actions button:disabled { opacity: .55; cursor: default; }
+    .review-original { color: #9298a3; text-decoration-line: line-through; text-decoration-color: #ef4444; text-decoration-thickness: 1px; }
+    .review-original h1, .review-original h2, .review-original h3, .review-original h4, .review-original h5, .review-original h6 { color: inherit; }
+    .review-proposed { color: var(--ui-primary-strong); }
+    .review-proposed h1, .review-proposed h2, .review-proposed h3, .review-proposed h4, .review-proposed h5, .review-proposed h6 { color: inherit; }
+    .review-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0; padding: 10px 12px; border-radius: 8px; background: #fff7ed; color: #9a3412; font-size: 14px; }
+    .review-notice button { padding: 5px 9px; border-color: #fdba74; color: #9a3412; }
+    .empty-state { color: var(--ui-text-muted); text-align: center; padding: 48px 16px; }
+    article h1, article h2, article h3 { line-height: 1.3; color: var(--ui-text); }
+    article h1, article h2, article h3, article h4, article h5, article h6 { scroll-margin-top: 88px; }
+    article p, article h1, article h2, article h3, article h4, article h5, article h6,
+    article li, article th, article td { white-space: pre-wrap; }
+    article h1 { margin: 0 0 18px; font-size: 2em; }
+    article h2 { margin: 28px 0 12px; font-size: 1.5em; }
+    article h3 { margin: 20px 0 8px; font-size: 1.25em; }
+    article pre { padding: 14px; border-radius: 7px; background: #111827; color: #e5e7eb; overflow-x: auto; }
+    article code { padding: 2px 4px; border-radius: 4px; background: #eef2ff; }
+    article pre code { padding: 0; background: transparent; }
+    article blockquote { margin-left: 0; padding-left: 15px; border-left: 3px solid #93c5fd; color: #475569; }
+    article table { width: 100%; margin: 16px 0; border-collapse: collapse; font-size: .95em; }
+    article th, article td { padding: 8px 10px; border: 1px solid var(--ui-border); text-align: left; vertical-align: top; }
+    article th { background: var(--ui-surface-subtle); color: var(--ui-text); font-weight: 600; }
+    [hidden] { display: none !important; }
+    @media (min-width: 1180px) {
+      main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 210mm) minmax(0, 1fr); gap: 16px; max-width: none; padding-inline: 20px; }
+      .outline-sidebar { grid-column: 1; grid-row: 1; position: sticky; top: 82px; left: auto; width: min(240px, 100%); padding-top: 28px; align-self: start; justify-self: start; }
+      .outline-panel { top: 72px; max-height: calc(100vh - 130px); }
+      .workspace { grid-column: 2; grid-row: 1; }
+    }
+    @media (min-width: 721px) and (max-width: 1179px) {
+      main { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 16px; max-width: 1200px; }
+      main.outline-open { grid-template-columns: 280px minmax(0, 1fr); }
+      .outline-sidebar { grid-column: 1; grid-row: 1; position: sticky; top: 82px; width: 100%; padding-top: 28px; align-self: start; }
+      main.outline-open .outline-sidebar { width: 100%; padding: 28px 0 0; overflow: visible; background: transparent; box-shadow: none; }
+      .outline-panel { top: 72px; max-height: calc(100vh - 130px); }
+      main.outline-open .outline-panel { padding: 10px 8px 10px 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overscroll-behavior: contain; }
+      .workspace { grid-column: 2; grid-row: 1; }
+    }
+    @media (max-width: 720px) {
+      header { padding: 12px 14px; }
+      #status { max-width: 45vw; }
+      main { display: block; padding: 10px; }
+      .outline-sidebar { position: fixed; top: 61px; right: 0; bottom: 0; left: auto; width: min(280px, 85vw); max-height: none; padding: 30px 10px 10px; overflow: visible; z-index: 3; background: var(--ui-surface); box-shadow: -4px 0 16px rgba(15, 23, 42, .06); transform: translateX(0); }
+      main:not(.outline-open) .outline-sidebar { transform: translateX(calc(100% - 44px)); padding: 30px 0 10px; background: transparent; box-shadow: none; }
+      main:not(.outline-open) .outline-sidebar .outline-toggle { border: 1px solid var(--ui-border); border-right: 0; border-radius: 8px 0 0 8px; background: var(--ui-surface); }
+      main:not(.outline-open) .outline-sidebar .outline-toggle { width: 44px; height: 44px; padding: 11px 13px; }
+      main:not(.outline-open) .outline-toggle .outline-collapsed-icon { display: none; }
+      main:not(.outline-open) .outline-toggle .outline-mobile-icon { display: block; width: 18px; height: 18px; }
+      .outline-sidebar::after { content: ''; position: absolute; top: 0; left: -64px; right: auto; bottom: 0; width: 64px; background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .45) 28%, rgba(255, 255, 255, .82) 58%, rgba(255, 255, 255, .98) 82%, rgba(255, 255, 255, .98) 100%); opacity: 0; pointer-events: none; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease); }
+      main.outline-open .outline-sidebar::after { opacity: 1; }
+      .outline-panel { top: 74px; max-height: calc(100vh - 130px); padding: 10px 0; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease), visibility 0s linear var(--outline-motion-duration); }
+      main:not(.outline-open) .outline-panel { clip-path: inset(0); }
+      .selection-toolbar { max-width: calc(100vw - 12px); }
+      .workspace { grid-column: auto; grid-row: auto; }
+      .workspace { min-height: calc(100vh - 100px); border-radius: 8px; }
+      article { min-height: calc(100vh - 132px); }
+      article { padding: 20px 18px; }
+      article table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    @media (max-width: 420px) {
+      header { padding: 10px; }
+      .outline-sidebar { top: 57px; }
+      .toolbar { gap: 6px; }
+      #reload-latest { flex: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      main, .outline-sidebar, .outline-panel { transition-duration: .01ms; transition-delay: 0s; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="toolbar"><h1>Codex Desk</h1><span id="status">正在读取…</span></div>
+    <div class="toolbar">
+      <button id="undo-button" class="icon-button" type="button" aria-label="撤销" title="撤销" disabled>
+        <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5.82843 6.99955L8.36396 9.53509L6.94975 10.9493L2 5.99955L6.94975 1.0498L8.36396 2.46402L5.82843 4.99955H13C17.4183 4.99955 21 8.58127 21 12.9996C21 17.4178 17.4183 20.9996 13 20.9996H4V18.9996H13C16.3137 18.9996 19 16.3133 19 12.9996C19 9.68584 16.3137 6.99955 13 6.99955H5.82843Z"></path></svg>
+      </button>
+      <button id="redo-button" class="icon-button" type="button" aria-label="恢复" title="恢复" disabled>
+        <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.1716 6.99955H11C7.68629 6.99955 5 9.68584 5 12.9996C5 16.3133 7.68629 18.9996 11 18.9996H20V20.9996H11C6.58172 20.9996 3 17.4178 3 12.9996C3 8.58127 6.58172 4.99955 11 4.99955H18.1716L15.636 2.46402L17.0503 1.0498L22 5.99955L17.0503 10.9493L15.636 9.53509L18.1716 6.99955Z"></path></svg>
+      </button>
+      <div class="document-menu">
+        <button id="document-menu-toggle" class="icon-button" type="button" aria-label="切换文档" title="切换文档" aria-expanded="false" aria-controls="document-menu-options">
+          <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 8V20.9932C21 21.5501 20.5552 22 20.0066 22H3.9934C3.44495 22 3 21.556 3 21.0082V2.9918C3 2.45531 3.4487 2 4.00221 2H14.9968L21 8ZM19 9H14V4H5V20H19V9ZM8 7H11V9H8V7ZM8 11H16V13H8V11ZM8 15H16V17H8V15Z"></path></svg>
+        </button>
+        <div id="document-menu-options" class="document-menu-options" hidden role="menu"></div>
+      </div>
+      <div id="example-menu" class="example-menu">
+        <button id="default-button" class="icon-button" type="button" aria-label="导入范例" title="导入范例" aria-expanded="false" aria-controls="example-options">
+          <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 4H5V20H19V8H15V4ZM3 2.9918C3 2.44405 3.44749 2 3.9985 2H16L20.9997 7L21 20.9925C21 21.5489 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5447 3 21.0082V2.9918ZM11 11H13V17H11V11ZM11 7H13V9H11V7Z"></path></svg>
+        </button>
+        <div id="example-options" class="example-options" hidden role="menu">
+          <button id="import-tesla-example" type="button" role="menuitem">导入特斯拉年报范例</button>
+          <button id="import-xiaomi-example" type="button" role="menuitem">导入小米年报范例</button>
+        </div>
+      </div>
+      <button id="copy-button" class="icon-button" type="button" aria-label="复制全文" title="复制全文">
+        <svg class="mode-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true"><path d="M13 12.4316V7.8125C13 6.2592 14.2592 5 15.8125 5H40.1875C41.7408 5 43 6.2592 43 7.8125V32.1875C43 33.7408 41.7408 35 40.1875 35H35.5163" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.1875 13H7.8125C6.2592 13 5 14.2592 5 15.8125V40.1875C5 41.7408 6.2592 43 7.8125 43H32.1875C33.7408 43 35 41.7408 35 40.1875V15.8125C35 14.2592 33.7408 13 32.1875 13Z" stroke-width="4" stroke-linejoin="round"></path></svg>
+      </button>
+      <div class="export-menu">
+        <button id="export-toggle" class="icon-button" type="button" aria-label="导出" title="导出" aria-expanded="false" aria-controls="export-options">
+          <svg class="mode-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 24.0083V42H42V24" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M33 23L24 32L15 23" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M23.9917 6V32" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </button>
+        <div id="export-options" class="export-options" hidden>
+          <button id="export-pdf" type="button">导出 PDF</button>
+          <button id="export-markdown" type="button">导出 MD</button>
+        </div>
+      </div>
+      <button id="reload-latest">重新加载最新版本</button>
+    </div>
+  </header>
+  <main id="canvas-layout">
+    <aside class="outline-sidebar" aria-label="文档大纲">
+      <button id="outline-toggle" class="outline-toggle" type="button" aria-label="展开大纲" title="展开大纲" aria-expanded="false" aria-controls="outline-panel">
+        <svg class="mode-icon outline-collapsed-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 4H21V6H3V4ZM3 19H21V21H3V19ZM11 14H21V16H11V14ZM11 9H21V11H11V9ZM3 12.5L7 9V16L3 12.5Z"></path></svg>
+        <svg class="mode-icon outline-mobile-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true"><path d="M24 36L12 24L24 12" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M36 36L24 24L36 12" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <svg class="mode-icon outline-expanded-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true" hidden><path d="M12 12L24 24L12 36" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M24 12L36 24L24 36" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+    <nav id="outline-panel" class="outline-panel" aria-hidden="true" aria-label="文档大纲">
+        <div id="outline-list" class="outline-list"></div>
+      </nav>
+    </aside>
+    <section class="workspace">
+      <article id="preview" aria-label="Markdown 文稿"></article>
+    </section>
+  </main>
+  <div id="selection-toolbar" class="selection-toolbar" role="toolbar" aria-label="文本格式" hidden>
+    <span class="selection-format-handle" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8.5 7C9.32843 7 10 6.32843 10 5.5C10 4.67157 9.32843 4 8.5 4C7.67157 4 7 4.67157 7 5.5C7 6.32843 7.67157 7 8.5 7ZM8.5 13.5C9.32843 13.5 10 12.8284 10 12C10 11.1716 9.32843 10.5 8.5 10.5C7.67157 10.5 7 11.1716 7 12C7 12.8284 7.67157 13.5 8.5 13.5ZM10 18.5C10 19.3284 9.32843 20 8.5 20C7.67157 20 7 19.3284 7 18.5C7 17.6716 7.67157 17 8.5 17C9.32843 17 10 17.6716 10 18.5ZM15.5 7C16.3284 7 17 6.32843 17 5.5C17 4.67157 16.3284 4 15.5 4C14.6716 4 14 4.67157 14 5.5C14 6.32843 14.6716 7 15.5 7ZM17 12C17 12.8284 16.3284 13.5 15.5 13.5C14.6716 13.5 14 12.8284 14 12C14 11.1716 14.6716 10.5 15.5 10.5C15.5 10.5 17 11.1716 17 12ZM15.5 20C16.3284 20 17 19.3284 17 18.5C17 17.6716 16.3284 17 15.5 17C14.6716 17 14 17.6716 14 18.5C14 19.3284 14.6716 20 15.5 20Z"></path></svg></span>
+    <button id="selection-bold" class="selection-format-button" type="button" aria-label="加粗" title="加粗" aria-pressed="false"><strong>B</strong></button>
+    <button id="selection-italic" class="selection-format-button" type="button" aria-label="斜体" title="斜体" aria-pressed="false"><em>I</em></button>
+    <button id="selection-quote" class="selection-format-button" type="button" aria-label="引用" title="引用" aria-pressed="false"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.4167 6.67891C20.4469 7.77257 21.0001 9 21.0001 10.9897C21.0001 14.4891 18.5436 17.6263 14.9695 19.1768L14.0768 17.7992C17.4121 15.9946 18.0639 13.6539 18.3245 12.178C17.7875 12.4557 17.0845 12.5533 16.3954 12.4895C14.591 12.3222 13.1689 10.8409 13.1689 9C13.1689 7.067 14.7359 5.5 16.6689 5.5C17.742 5.5 18.7681 5.99045 19.4167 6.67891ZM9.41669 6.67891C10.4469 7.77257 11.0001 9 11.0001 10.9897C11.0001 14.4891 8.54359 17.6263 4.96951 19.1768L4.07682 17.7992C7.41206 15.9946 8.06392 13.6539 8.32447 12.178C7.78747 12.4557 7.08452 12.5533 6.39539 12.4895C4.59102 12.3222 3.16895 10.8409 3.16895 9C3.16895 7.067 4.73595 5.5 6.66895 5.5C7.742 5.5 8.76814 5.99045 9.41669 6.67891Z"></path></svg></button>
+    <div class="selection-format-menu-wrap">
+      <button id="selection-format-menu-toggle" class="selection-format-menu-toggle" type="button" aria-label="文本和列表格式" title="文本和列表格式" aria-expanded="false" aria-controls="selection-format-menu"><span id="selection-format-menu-label">文本</span><svg class="selection-format-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+      <div id="selection-format-menu" class="selection-format-menu" role="menu" hidden>
+        <button type="button" role="menuitem" data-format="P" aria-current="true">文本</button>
+        <button type="button" role="menuitem" data-format="H1" aria-current="false">标题 1</button>
+        <button type="button" role="menuitem" data-format="H2" aria-current="false">标题 2</button>
+        <button type="button" role="menuitem" data-format="H3" aria-current="false">标题 3</button>
+        <button type="button" role="menuitem" data-format="UL" aria-current="false">无序列表</button>
+        <button type="button" role="menuitem" data-format="OL" aria-current="false">有序列表</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const canvasLayout = document.querySelector('#canvas-layout');
+    const preview = document.querySelector('#preview');
+    const status = document.querySelector('#status');
+    const reloadButton = document.querySelector('#reload-latest');
+    const defaultButton = document.querySelector('#default-button');
+    const undoButton = document.querySelector('#undo-button');
+    const redoButton = document.querySelector('#redo-button');
+    const copyButton = document.querySelector('#copy-button');
+    const exportToggleButton = document.querySelector('#export-toggle');
+    const exportOptions = document.querySelector('#export-options');
+    const exportPdfButton = document.querySelector('#export-pdf');
+    const exportMarkdownButton = document.querySelector('#export-markdown');
+    const exampleOptions = document.querySelector('#example-options');
+    const importTeslaExampleButton = document.querySelector('#import-tesla-example');
+    const importXiaomiExampleButton = document.querySelector('#import-xiaomi-example');
+    const documentMenuToggle = document.querySelector('#document-menu-toggle');
+    const documentMenuIcon = documentMenuToggle.querySelector('.mode-icon');
+    const documentMenuOptions = document.querySelector('#document-menu-options');
+    const outlineToggle = document.querySelector('#outline-toggle');
+    const outlinePanel = document.querySelector('#outline-panel');
+    const outlineList = document.querySelector('#outline-list');
+    const outlineCollapsedIcon = outlineToggle.querySelector('.outline-collapsed-icon');
+    const outlineExpandedIcon = outlineToggle.querySelector('.outline-expanded-icon');
+    const selectionToolbar = document.querySelector('#selection-toolbar');
+    const selectionBoldButton = document.querySelector('#selection-bold');
+    const selectionItalicButton = document.querySelector('#selection-italic');
+    const selectionQuoteButton = document.querySelector('#selection-quote');
+    const selectionFormatMenuToggle = document.querySelector('#selection-format-menu-toggle');
+    const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
+    const selectionFormatMenu = document.querySelector('#selection-format-menu');
+    const app = { documentId: null, title: '', documents: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false, windowFocused: document.hasFocus() };
+    let outlineEntries = [];
+    let outlineScrollFrame = 0;
+    let outlineScrollEndTimer = 0;
+    let outlineClickScrolling = false;
+    let selectionState = null;
+    const DOCUMENT_MENU_TITLE_LIMIT = 15;
+
+    const setStatus = (text) => { status.textContent = text; };
+
+    function truncateDocumentTitle(title) {
+      const characters = Array.from(title);
+      return characters.length > DOCUMENT_MENU_TITLE_LIMIT
+        ? `${characters.slice(0, DOCUMENT_MENU_TITLE_LIMIT - 1).join('')}…`
+        : title;
+    }
+
+    function setOutlineOpen(open) {
+      canvasLayout.classList.toggle('outline-open', open);
+      outlinePanel.setAttribute('aria-hidden', String(!open));
+      outlineCollapsedIcon.toggleAttribute('hidden', open);
+      outlineExpandedIcon.toggleAttribute('hidden', !open);
+      outlineToggle.setAttribute('aria-expanded', String(open));
+      outlineToggle.title = open ? '收起大纲' : '展开大纲';
+      outlineToggle.setAttribute('aria-label', outlineToggle.title);
+      if (open) scheduleOutlineActive();
+    }
+
+    function setOutlineActiveItem(activeItem) {
+      outlineEntries.forEach((entry) => {
+        const selected = entry.item === activeItem;
+        entry.item.classList.toggle('active', selected);
+        entry.item.setAttribute('aria-current', String(selected));
+      });
+    }
+
+    function updateOutlineActive() {
+      if (!outlineEntries.length) return;
+      let active = outlineEntries[0];
+      outlineEntries.forEach((entry) => {
+        if (entry.heading.getBoundingClientRect().top <= 96) active = entry;
+      });
+      setOutlineActiveItem(active.item);
+    }
+
+    function scheduleOutlineActive() {
+      if (outlineClickScrolling) return;
+      if (outlineScrollFrame) return;
+      outlineScrollFrame = window.requestAnimationFrame(() => {
+        outlineScrollFrame = 0;
+        updateOutlineActive();
+      });
+    }
+
+    function finishOutlineClickScroll() {
+      outlineClickScrolling = false;
+      outlineScrollEndTimer = 0;
+      scheduleOutlineActive();
+    }
+
+    function armOutlineScrollEnd() {
+      window.clearTimeout(outlineScrollEndTimer);
+      outlineScrollEndTimer = window.setTimeout(finishOutlineClickScroll, 120);
+    }
+
+    function handleCanvasScroll() {
+      if (outlineClickScrolling) {
+        armOutlineScrollEnd();
+        return;
+      }
+      scheduleOutlineActive();
+    }
+
+    function renderOutline() {
+      outlineEntries = [];
+      outlineList.replaceChildren();
+      const headings = Array.from(preview.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+        .filter((heading) => !heading.closest('.review-proposed'))
+        .filter((heading) => heading.textContent.trim());
+      headings.forEach((heading) => {
+        const level = Number(heading.tagName.slice(1));
+        const title = heading.textContent.trim();
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'outline-item';
+        item.dataset.level = String(level);
+        item.style.paddingInlineStart = `${8 + (level - 1) * 14}px`;
+        item.textContent = title;
+        item.title = title;
+        item.setAttribute('aria-label', title);
+        item.setAttribute('aria-current', 'false');
+        item.addEventListener('click', () => {
+          if (outlineScrollFrame) {
+            window.cancelAnimationFrame(outlineScrollFrame);
+            outlineScrollFrame = 0;
+          }
+          setOutlineActiveItem(item);
+          outlineClickScrolling = true;
+          armOutlineScrollEnd();
+          heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          if (window.matchMedia('(max-width: 720px)').matches) setOutlineOpen(false);
+        });
+        outlineList.appendChild(item);
+        outlineEntries.push({ heading, item });
+      });
+      if (!outlineEntries.length) {
+        const empty = document.createElement('div');
+        empty.className = 'outline-empty';
+        empty.textContent = '暂无可用大纲';
+        outlineList.appendChild(empty);
+      }
+      scheduleOutlineActive();
+    }
+
+    function rememberHistory() {
+      if (app.documentId) app.histories[app.documentId] = { undoStack: app.undoStack, redoStack: app.redoStack };
+    }
+
+    function restoreHistory(documentId) {
+      const history = app.histories[documentId] || { undoStack: [], redoStack: [] };
+      app.undoStack = history.undoStack;
+      app.redoStack = history.redoStack;
+    }
+
+    function updateDocumentEntry(next) {
+      const entry = app.documents.find((document) => document.id === next.document_id);
+      if (entry) {
+        entry.title = next.title || entry.title;
+        entry.revision = next.revision;
+        entry.has_review = Boolean(next.review);
+      }
+    }
+
+    function renderDocumentMenu() {
+      documentMenuOptions.replaceChildren();
+      app.documents.forEach((doc) => {
+        const title = doc.title || '未命名文档';
+        const option = document.createElement('div');
+        option.className = 'document-menu-option' + (doc.id === app.documentId ? ' selected' : '');
+        option.setAttribute('role', 'none');
+        const select = document.createElement('button');
+        select.className = 'document-menu-select';
+        select.type = 'button';
+        select.role = 'menuitem';
+        select.setAttribute('aria-current', String(doc.id === app.documentId));
+        select.title = title;
+        select.setAttribute('aria-label', title);
+        select.appendChild(documentMenuIcon.cloneNode(true));
+        const label = document.createElement('span');
+        label.className = 'document-menu-label';
+        label.textContent = truncateDocumentTitle(title);
+        select.appendChild(label);
+        if (doc.has_review) {
+          const dot = document.createElement('span');
+          dot.className = 'document-menu-review';
+          dot.title = '有待确认修改';
+          select.appendChild(dot);
+        }
+        select.addEventListener('click', () => {
+          closeDocumentMenu();
+          void switchDocument(doc.id);
+        });
+        option.appendChild(select);
+        if (app.documents.length > 1) {
+          const remove = document.createElement('button');
+          remove.className = 'document-menu-delete';
+          remove.type = 'button';
+          remove.role = 'menuitem';
+          remove.title = `删除${title}`;
+          remove.setAttribute('aria-label', `删除${title}`);
+          remove.textContent = '×';
+          remove.addEventListener('click', (event) => {
+            event.stopPropagation();
+            void deleteDocument(doc.id, title);
+          });
+          option.appendChild(remove);
+        }
+        documentMenuOptions.appendChild(option);
+      });
+      const create = document.createElement('button');
+      create.className = 'document-menu-create';
+      create.type = 'button';
+      create.role = 'menuitem';
+      create.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 2.00318V2H19.9978C20.5513 2 21 2.45531 21 2.9918V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5501 3 20.9932V8L9 2.00318ZM5.82918 8H9V4.83086L5.82918 8ZM11 4V9C11 9.55228 10.5523 10 10 10H5V20H19V4H11Z"></path></svg><span>新建文稿</span>';
+      create.addEventListener('click', () => void createDocument());
+      documentMenuOptions.appendChild(create);
+    }
+
+    function updateHistoryButtons() {
+      const blocked = app.historyBusy || app.reviewBusy || app.review;
+      undoButton.disabled = blocked || !app.undoStack.length;
+      redoButton.disabled = blocked || !app.redoStack.length;
+      defaultButton.disabled = blocked;
+      if (blocked) closeExampleMenu();
+    }
+
+    function recordEdit(previousContent, nextContent) {
+      if (previousContent === nextContent) return;
+      app.undoStack.push(previousContent);
+      app.redoStack = [];
+      updateHistoryButtons();
+    }
+
+    async function request(path, options = {}) {
+      const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || `请求失败（${response.status}）`);
+      return payload;
+    }
+
+    function statePath() {
+      return app.documentId ? `/api/state?document_id=${encodeURIComponent(app.documentId)}` : '/api/state';
+    }
+
+    function documentPayload(payload = {}) {
+      return app.documentId ? { ...payload, document_id: app.documentId } : payload;
+    }
+
+    async function switchDocument(documentId, persist = true) {
+      if (!documentId || documentId === app.documentId || app.historyBusy || app.reviewBusy) return;
+      if (!(await save())) return;
+      rememberHistory();
+      app.documentId = documentId;
+      restoreHistory(documentId);
+      app.editing = null;
+      app.revision = null;
+      app.content = '';
+      app.blocks = [];
+      app.review = null;
+      renderDocumentMenu();
+      try {
+        if (persist) await request('/api/documents/active', { method: 'POST', body: JSON.stringify({ document_id: documentId }) });
+        applyState(await request(statePath()));
+        setStatus('');
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function deleteDocument(documentId, title) {
+      if (!documentId || app.historyBusy || app.reviewBusy) return;
+      if (!window.confirm(`确认删除“${title}”吗？此操作不可恢复。`)) return;
+      if (!(await save())) return;
+      closeDocumentMenu();
+      try {
+        const listing = await request('/api/documents/delete', {
+          method: 'POST',
+          body: JSON.stringify({ document_id: documentId })
+        });
+        app.documents = listing.documents || [];
+        renderDocumentMenu();
+        if (listing.active_id && listing.active_id !== app.documentId) {
+          await switchDocument(listing.active_id, false);
+        } else {
+          setStatus('');
+        }
+        delete app.histories[documentId];
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function createDocument() {
+      if (app.historyBusy || app.reviewBusy) return;
+      if (!(await save())) return;
+      closeDocumentMenu();
+      try {
+        const next = await request('/api/documents', {
+          method: 'POST',
+          body: JSON.stringify({ content: '' })
+        });
+        app.documents.push({
+          id: next.document_id,
+          title: next.title,
+          revision: next.revision,
+          has_review: Boolean(next.review)
+        });
+        applyState(next);
+        setStatus('');
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function syncCanvas() {
+      try {
+        const listing = await request('/api/documents');
+        app.documents = listing.documents || [];
+        renderDocumentMenu();
+        const available = app.documents.some((document) => document.id === app.documentId);
+        const externalActive = listing.active_id && listing.active_id !== app.documentId && !app.editing && !app.reviewBusy;
+        const target = externalActive || !available ? listing.active_id : app.documentId;
+        if (target && target !== app.documentId && !app.editing && !app.reviewBusy) {
+          await switchDocument(target, false);
+        } else if (app.documentId) {
+          await loadState();
+        }
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    function renderReview(container, review) {
+      const change = document.createElement('div');
+      change.className = 'review-change';
+      const actions = document.createElement('div');
+      actions.className = 'review-actions';
+      const reject = document.createElement('button');
+      reject.id = 'review-reject';
+      reject.type = 'button';
+      reject.textContent = '撤销';
+      reject.addEventListener('click', () => void resolveReview('reject'));
+      const accept = document.createElement('button');
+      accept.id = 'review-accept';
+      accept.type = 'button';
+      accept.className = 'accept';
+      accept.textContent = '接受';
+      accept.addEventListener('click', () => void resolveReview('accept'));
+      actions.append(reject, accept);
+      const original = document.createElement('div');
+      original.className = 'review-original';
+      original.setAttribute('aria-label', '修改前内容');
+      original.innerHTML = review.old_html || '';
+      const proposed = document.createElement('div');
+      proposed.className = 'review-proposed';
+      proposed.setAttribute('aria-label', '修改后内容');
+      proposed.innerHTML = review.new_html || '';
+      change.append(actions, original, proposed);
+      container.classList.add('reviewing');
+      container.setAttribute('aria-label', '待确认修改');
+      container.appendChild(change);
+    }
+
+    function renderReviewNotice() {
+      const notice = document.createElement('div');
+      notice.className = 'review-notice';
+      notice.textContent = app.review?.stale
+        ? '修改建议已过期，请撤销后重新生成。'
+        : '修改建议暂时无法定位，请撤销后重新生成。';
+      const reject = document.createElement('button');
+      reject.id = 'review-reject';
+      reject.type = 'button';
+      reject.textContent = '撤销建议';
+      reject.addEventListener('click', () => void resolveReview('reject'));
+      notice.appendChild(reject);
+      preview.appendChild(notice);
+    }
+
+    function renderBlocks() {
+      hideSelectionToolbar();
+      preview.innerHTML = '';
+      if (!app.blocks.length) {
+        const empty = document.createElement('div');
+        empty.className = 'canvas-block empty-state';
+        empty.dataset.blockIndex = '0';
+        empty.tabIndex = 0;
+        empty.setAttribute('aria-label', '点击编辑此段内容');
+        const paragraph = document.createElement('p');
+        paragraph.textContent = '点击此处输入文稿内容';
+        empty.appendChild(paragraph);
+        preview.appendChild(empty);
+        renderOutline();
+        return;
+      }
+      if (app.review && (app.review.stale || app.review.unsupported || app.review.block_index == null)) {
+        renderReviewNotice();
+      }
+      app.blocks.forEach((block, index) => {
+        const container = document.createElement('div');
+        container.className = 'canvas-block';
+        container.dataset.blockIndex = String(index);
+        container.tabIndex = 0;
+        container.setAttribute('aria-label', '点击编辑此段内容');
+        if (app.review && app.review.block_index === index && !app.review.stale && !app.review.unsupported) {
+          renderReview(container, app.review);
+        } else {
+          container.innerHTML = block.html.trim();
+        }
+        preview.appendChild(container);
+      });
+      renderOutline();
+    }
+
+    function applyState(next) {
+      const editing = app.editing;
+      const documentChanged = app.documentId !== next.document_id;
+      const stateChanged = app.revision !== next.revision;
+      const reviewChanged = JSON.stringify(app.review) !== JSON.stringify(next.review || null);
+      if (documentChanged) {
+        rememberHistory();
+        app.documentId = next.document_id;
+        restoreHistory(next.document_id);
+      } else if (app.revision && app.revision !== next.revision && !editing) {
+        app.undoStack = [];
+        app.redoStack = [];
+      }
+      app.title = next.title || app.title;
+      app.content = next.content;
+      app.revision = next.revision;
+      app.blocks = next.blocks || [];
+      app.review = next.review || null;
+      updateDocumentEntry(next);
+      renderDocumentMenu();
+      reloadButton.style.display = 'none';
+      if (!editing && (stateChanged || reviewChanged)) renderBlocks();
+      updateHistoryButtons();
+    }
+
+    async function loadState(force = false) {
+      try {
+        const next = await request(statePath());
+        if (!force && app.revision && next.revision !== app.revision && app.editing) {
+          reloadButton.style.display = 'inline-block';
+          setStatus('画布已有外部更新；当前块编辑已保留');
+          return;
+        }
+        if (force && app.editing) cancelBlockEdit();
+        applyState(next);
+        setStatus('');
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    function activeContainer() {
+      return preview.querySelector('.canvas-block.editing');
+    }
+
+    function inlineMarkdown(node) {
+      if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\u00a0/g, ' ').replace(/\r\n?/g, '\n');
+      if (node.nodeType !== Node.ELEMENT_NODE) return '';
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'br') return '\n';
+      const content = Array.from(node.childNodes).map(inlineMarkdown).join('');
+      if (tag === 'strong' || tag === 'b') return `**${content}**`;
+      if (tag === 'em' || tag === 'i') return `*${content}*`;
+      if (tag === 'del' || tag === 's') return `~~${content}~~`;
+      if (tag === 'code') return '`' + content.replace(/`/g, '\\`') + '`';
+      if (tag === 'a') {
+        const href = node.getAttribute('href') || '';
+        return href ? `[${content}](${href})` : content;
+      }
+      return content;
+    }
+
+    function blockMarkdown(node) {
+      if (node.nodeType === Node.TEXT_NODE) return node.nodeValue;
+      if (node.nodeType !== Node.ELEMENT_NODE) return '';
+      const tag = node.tagName.toLowerCase();
+      if (/^h[1-6]$/.test(tag)) return `${'#'.repeat(Number(tag[1]))} ${inlineMarkdown(node)}`;
+      if (tag === 'p') return inlineMarkdown(node);
+      if (tag === 'ul' || tag === 'ol') {
+        const marker = tag === 'ol' ? (index) => `${index + 1}. ` : () => '- ';
+        return Array.from(node.children)
+          .filter((child) => child.tagName.toLowerCase() === 'li')
+          .map((child, index) => `${marker(index)}${inlineMarkdown(child)}`)
+          .join('\n');
+      }
+      if (tag === 'table') {
+        const rows = Array.from(node.querySelectorAll('tr')).map((row) =>
+          Array.from(row.children).map((cell) => inlineMarkdown(cell).trim().replace(/\|/g, '\\|').replace(/\n/g, ' '))
+        );
+        if (!rows.length) return '';
+        const headerCells = Array.from(node.querySelectorAll('thead th'));
+        const separator = rows[0].map((_, index) => {
+          const alignment = headerCells[index]?.style.textAlign;
+          return alignment === 'right' ? '---:' : alignment === 'center' ? ':---:' : '---';
+        });
+        return [rows[0], separator, ...rows.slice(1)]
+          .map((row) => `| ${row.join(' | ')} |`)
+          .join('\n');
+      }
+      if (tag === 'blockquote') {
+        const content = Array.from(node.childNodes).map(blockMarkdown).filter(Boolean).join('\n\n');
+        return content.split('\n').map((line) => line ? `> ${line}` : '>').join('\n');
+      }
+      if (tag === 'pre') return '```\n' + node.textContent.replace(/\n+$/, '') + '\n```';
+      if (tag === 'hr') return '---';
+      if (tag === 'div') return Array.from(node.childNodes).map(blockMarkdown).filter(Boolean).join('\n\n');
+      return inlineMarkdown(node).trim();
+    }
+
+    function serializeBlockContent(container) {
+      const parts = Array.from(container.childNodes)
+        .map(blockMarkdown)
+        .filter((part) => part.trim());
+      if (!parts.length) return '';
+      const content = parts.join('\n\n');
+      return content.endsWith('\n') ? content : `${content}\n`;
+    }
+
+    function lineCount(content) {
+      if (!content) return 0;
+      const lines = content.split(/\r?\n/).length;
+      return content.endsWith('\n') ? lines - 1 : lines;
+    }
+
+    function insertEditorBreak(container, paragraphBreak) {
+      const selection = window.getSelection();
+      if (!selection?.rangeCount) return false;
+      const range = selection.getRangeAt(0);
+      if (!container.contains(range.commonAncestorContainer)) return false;
+      range.deleteContents();
+      const breaks = [document.createElement('br')];
+      if (paragraphBreak) breaks.push(document.createElement('br'));
+      const fragment = document.createDocumentFragment();
+      breaks.forEach((lineBreak) => fragment.appendChild(lineBreak));
+      range.insertNode(fragment);
+      const caret = document.createRange();
+      caret.setStartAfter(breaks[breaks.length - 1]);
+      caret.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(caret);
+      container.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+
+    function placeCaretInEmptyParagraph(container) {
+      const paragraph = container.firstElementChild;
+      if (container.childNodes.length !== 1 || paragraph?.tagName !== 'P' || paragraph.textContent) return false;
+      const range = document.createRange();
+      range.selectNodeContents(paragraph);
+      range.collapse(true);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      return true;
+    }
+
+    function placeCaretAtPoint(container, event) {
+      let range = null;
+      if (event?.type === 'click' && document.caretRangeFromPoint) {
+        range = document.caretRangeFromPoint(event.clientX, event.clientY);
+      } else if (event?.type === 'click' && document.caretPositionFromPoint) {
+        const position = document.caretPositionFromPoint(event.clientX, event.clientY);
+        if (position) {
+          range = document.createRange();
+          range.setStart(position.offsetNode, position.offset);
+          range.collapse(true);
+        }
+      }
+      if (!range || !container.contains(range.startContainer)) {
+        range = document.createRange();
+        range.selectNodeContents(container);
+        range.collapse(false);
+      }
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      if (app.editing) app.editing.mergeBoundary = null;
+    }
+
+    function selectionRangeWithin(container) {
+      const selection = window.getSelection();
+      if (!selection?.rangeCount || selection.isCollapsed
+        || !container.contains(selection.anchorNode)
+        || !container.contains(selection.focusNode)) return null;
+      return selection.getRangeAt(0).cloneRange();
+    }
+
+    function selectableContentBlock(container) {
+      return container.matches('.canvas-block') && !container.hidden
+        && !container.closest('[hidden]') && container.getClientRects().length
+        && container.textContent.trim();
+    }
+
+    function selectionRangeWithinPreview() {
+      const selection = window.getSelection();
+      if (!selection?.rangeCount || selection.isCollapsed
+        || !preview.contains(selection.anchorNode) || !preview.contains(selection.focusNode)) return null;
+      const range = selection.getRangeAt(0).cloneRange();
+      if (!range.toString().trim()) return null;
+      const containers = Array.from(preview.querySelectorAll('.canvas-block'))
+        .filter(selectableContentBlock)
+        .filter((container) => {
+          const contents = document.createRange();
+          contents.selectNodeContents(container);
+          return range.compareBoundaryPoints(Range.END_TO_START, contents) < 0
+            && range.compareBoundaryPoints(Range.START_TO_END, contents) > 0;
+        });
+      return containers.length > 1 ? { range, containers } : null;
+    }
+
+    function closeSelectionFormatMenu() {
+      selectionFormatMenu.hidden = true;
+      selectionFormatMenuToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function updateSelectionFormatMenu(context) {
+      const tag = context.container.firstElementChild?.tagName;
+      const value = ['P', 'H1', 'H2', 'H3', 'UL', 'OL'].includes(tag) ? tag : 'P';
+      selectionQuoteButton.setAttribute('aria-pressed', String(tag === 'BLOCKQUOTE'));
+      selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => {
+        option.setAttribute('aria-current', String(option.dataset.format === value));
+      });
+      selectionFormatMenuLabel.textContent = selectionFormatMenu.querySelector('[data-format="' + value + '"]')?.textContent.trim() || '文本';
+    }
+
+    function hideSelectionToolbar() {
+      selectionState = null;
+      selectionToolbar.hidden = true;
+      selectionToolbar.style.left = '';
+      selectionToolbar.style.top = '';
+      selectionBoldButton.setAttribute('aria-pressed', 'false');
+      selectionItalicButton.setAttribute('aria-pressed', 'false');
+      selectionQuoteButton.setAttribute('aria-pressed', 'false');
+      selectionBoldButton.disabled = false;
+      selectionItalicButton.disabled = false;
+      selectionQuoteButton.disabled = false;
+      selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => { option.disabled = false; });
+      closeSelectionFormatMenu();
+    }
+
+    function currentSelectionContext() {
+      const container = activeContainer();
+      const range = container ? selectionRangeWithin(container) : null;
+      if (range && range.toString()) return { container, range, containers: [container] };
+      const cross = selectionRangeWithinPreview();
+      if (!cross || (container && !cross.containers.includes(container))) return null;
+      return { container: container || cross.containers[0], ...cross, crossBlock: true };
+    }
+
+    function selectionRect(range) {
+      const first = selectionState?.containers?.length > 1 ? range.getClientRects()[0] : null;
+      if (first) return first;
+      const rect = range.getBoundingClientRect();
+      if (rect.width || rect.height) return rect;
+      return range.getClientRects()[0] || null;
+    }
+
+    function positionSelectionToolbar() {
+      if (!selectionState || selectionToolbar.hidden) return;
+      const rect = selectionRect(selectionState.range);
+      if (!rect) {
+        hideSelectionToolbar();
+        return;
+      }
+      const toolbarRect = selectionToolbar.getBoundingClientRect();
+      if (!toolbarRect.width || !toolbarRect.height) return;
+      const gap = 8;
+      const maxLeft = Math.max(8, window.innerWidth - toolbarRect.width - 8);
+      const left = Math.min(maxLeft, Math.max(8, rect.left + (rect.width - toolbarRect.width) / 2));
+      const above = rect.top - toolbarRect.height - gap;
+      const maxTop = Math.max(8, window.innerHeight - toolbarRect.height - 8);
+      const top = above >= 8 ? above : Math.max(8, Math.min(maxTop, rect.bottom + gap));
+      selectionToolbar.style.left = `${left}px`;
+      selectionToolbar.style.top = `${top}px`;
+    }
+
+    function syncSelectionToolbar() {
+      const context = currentSelectionContext();
+      if (context) {
+        selectionState = context;
+        selectionToolbar.hidden = false;
+        try {
+          selectionBoldButton.setAttribute('aria-pressed', String(document.queryCommandState('bold')));
+          selectionItalicButton.setAttribute('aria-pressed', String(document.queryCommandState('italic')));
+        } catch {
+          selectionBoldButton.setAttribute('aria-pressed', 'false');
+          selectionItalicButton.setAttribute('aria-pressed', 'false');
+        }
+        const crossBlock = context.containers.length > 1;
+        selectionBoldButton.disabled = crossBlock;
+        selectionItalicButton.disabled = crossBlock;
+        selectionQuoteButton.disabled = crossBlock;
+        selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => {
+          option.disabled = crossBlock && !['UL', 'OL'].includes(option.dataset.format);
+        });
+        updateSelectionFormatMenu(context);
+        positionSelectionToolbar();
+        return;
+      }
+      if (!selectionToolbar.matches(':focus-within')) hideSelectionToolbar();
+    }
+
+    function restoreToolbarSelection(wholeBlock = false) {
+      const state = selectionState;
+      if (!state?.container?.isConnected || (!state.crossBlock && !app.editing)) return null;
+      if (!state.crossBlock) state.container.focus({ preventScroll: true });
+      const range = wholeBlock ? document.createRange() : state.range.cloneRange();
+      if (wholeBlock && state.containers?.length > 1) {
+        const first = state.containers[0];
+        const last = state.containers[state.containers.length - 1];
+        range.setStart(first, 0);
+        range.setEnd(last, last.childNodes.length);
+      } else if (wholeBlock) {
+        range.selectNodeContents(state.container.firstElementChild || state.container);
+      }
+      restoreSelection(range);
+      return { ...state, range };
+    }
+
+    function applySelectionCommand(command, value = null) {
+      const state = restoreToolbarSelection();
+      if (!state) return false;
+      if (state.containers.length > 1) return false;
+      let applied = false;
+      try {
+        applied = document.execCommand(command, false, value);
+      } catch {
+        applied = false;
+      }
+      if (!applied) return false;
+      state.container.dispatchEvent(new Event('input', { bubbles: true }));
+      syncSelectionToolbar();
+      return true;
+    }
+
+    function convertContainerFormat(container, value) {
+      const source = container.firstElementChild || container;
+      const nestedList = source.matches('P, H1, H2, H3') && source.children.length === 1
+        && source.firstElementChild?.matches('UL, OL') && source.textContent === source.firstElementChild.textContent
+        ? source.firstElementChild
+        : source;
+      const quoted = source.matches('BLOCKQUOTE');
+      const target = document.createElement(value.toLowerCase());
+      const sourceItems = nestedList.matches('UL, OL')
+        ? Array.from(nestedList.children).filter((child) => child.tagName === 'LI')
+        : [nestedList];
+
+      if (value === 'UL' || value === 'OL') {
+        sourceItems.forEach((item) => {
+          const li = document.createElement('li');
+          Array.from(item.childNodes).forEach((node) => li.appendChild(node.cloneNode(true)));
+          target.appendChild(li);
+        });
+      } else if (value === 'P' && quoted) {
+        const blocks = document.createDocumentFragment();
+        Array.from(source.children).forEach((child) => blocks.appendChild(child.cloneNode(true)));
+        return blocks;
+      } else if (value === 'BLOCKQUOTE') {
+        target.appendChild(nestedList.cloneNode(true));
+      } else if (value === 'P' && nestedList.matches('UL, OL')) {
+        const paragraphs = document.createDocumentFragment();
+        sourceItems.forEach((item) => {
+          const paragraph = document.createElement('p');
+          Array.from(item.childNodes).forEach((node) => paragraph.appendChild(node.cloneNode(true)));
+          paragraphs.appendChild(paragraph);
+        });
+        return paragraphs;
+      } else {
+        sourceItems.forEach((item, index) => {
+          if (index) target.appendChild(document.createElement('br'));
+          Array.from(item.childNodes).forEach((node) => target.appendChild(node.cloneNode(true)));
+        });
+      }
+      return target;
+    }
+
+    async function applySelectionFormat(value) {
+      const state = restoreToolbarSelection(true);
+      if (!state) return false;
+      if (state.containers.length === 1) {
+        state.container.replaceChildren(convertContainerFormat(state.container, value));
+        const range = document.createRange();
+        range.selectNodeContents(state.container.firstElementChild);
+        restoreSelection(range);
+        state.container.dispatchEvent(new Event('input', { bubbles: true }));
+        if (value === 'P' && state.container.children.length > 1) return saveActiveBlock(true);
+        syncSelectionToolbar();
+        return true;
+      }
+      if (!['UL', 'OL'].includes(value)) return false;
+      const indexes = state.containers.map((container) => Number(container.dataset.blockIndex));
+      const firstIndex = indexes[0];
+      if (indexes.some((index, position) => index !== firstIndex + position)) return false;
+      const lastIndex = indexes[indexes.length - 1];
+      const first = state.containers[0];
+      const firstBlock = app.blocks[firstIndex];
+      const lastBlock = app.blocks[lastIndex];
+      if (!firstBlock || !lastBlock) return false;
+
+      const list = document.createElement(value.toLowerCase());
+      state.containers.forEach((container) => {
+        const converted = convertContainerFormat(container, value);
+        Array.from(converted.children).forEach((item) => list.appendChild(item.cloneNode(true)));
+      });
+      const target = state.container;
+      target.replaceChildren(list);
+      if (target !== first) first.replaceWith(target);
+
+      const previousContent = app.content;
+      const lines = app.content.match(/[^\n]*\n|[^\n]+$/g) || [];
+      lines.splice(firstBlock.start_line, lastBlock.end_line - firstBlock.start_line, serializeBlockContent(target));
+      const content = lines.join('');
+      if (content === previousContent) return false;
+      clearTimeout(app.saveTimer);
+      app.saveTimer = null;
+      const editing = app.editing;
+      try {
+        await replaceDocument(content, false);
+        if (app.editing !== editing) return false;
+        state.containers.forEach((container) => {
+          if (container !== target) container.remove();
+        });
+        Array.from(preview.querySelectorAll('.canvas-block')).forEach((block, index) => {
+          block.dataset.blockIndex = String(index);
+        });
+        if (!editing) await beginBlockEdit(firstIndex);
+        const activeBlock = app.blocks[firstIndex];
+        if (app.editing && activeBlock) {
+          app.editing.index = firstIndex;
+          app.editing.startLine = activeBlock.start_line;
+          app.editing.endLine = activeBlock.end_line;
+          app.editing.content = serializeBlockContent(target);
+        }
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        restoreSelection(range);
+        selectionState = { ...state, crossBlock: false, container: target, containers: [target], range };
+        recordEdit(previousContent, app.content);
+        renderOutline();
+        updateHistoryButtons();
+        syncSelectionToolbar();
+        setStatus('');
+      } catch (error) {
+        if (app.editing === editing) setStatus(error.message + '；请重新加载最新版本');
+      }
+      return true;
+    }
+
+    function restoreSelection(range) {
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function selectCanvasContent(container) {
+      const range = document.createRange();
+      range.selectNodeContents(container);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function selectionCovers(container) {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount !== 1) return false;
+      const contents = document.createRange();
+      contents.selectNodeContents(container);
+      const selected = selection.getRangeAt(0);
+      return selected.compareBoundaryPoints(Range.START_TO_START, contents) === 0
+        && selected.compareBoundaryPoints(Range.END_TO_END, contents) === 0;
+    }
+
+    function caretAtStart(container) {
+      const selection = window.getSelection();
+      if (!selection?.rangeCount || !selection.isCollapsed) return false;
+      const range = selection.getRangeAt(0);
+      if (!container.contains(range.startContainer)) return false;
+      const before = document.createRange();
+      before.selectNodeContents(container);
+      before.setEnd(range.startContainer, range.startOffset);
+      return !before.toString();
+    }
+
+    function setCaretAfter(node) {
+      const range = document.createRange();
+      range.setStartAfter(node);
+      range.collapse(true);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    function mergeBlockAtStart(container, index) {
+      const editing = app.editing;
+      const previousBlock = app.blocks[index - 1];
+      const currentBlock = app.blocks[index];
+      const previous = preview.querySelector('[data-block-index="' + (index - 1) + '"]');
+      const previousParagraph = previous?.children.length === 1 && previous.firstElementChild?.tagName === 'P'
+        ? previous.firstElementChild
+        : null;
+      const currentParagraph = container.children.length === 1 && container.firstElementChild?.tagName === 'P'
+        ? container.firstElementChild
+        : null;
+      if (!editing || editing.index !== index || !previousBlock || !currentBlock || !previousParagraph || !currentParagraph) return false;
+
+      const mergedParagraph = previousParagraph.cloneNode(false);
+      Array.from(previousParagraph.childNodes).forEach((node) => mergedParagraph.appendChild(node.cloneNode(true)));
+      const breakNode = document.createElement('br');
+      mergedParagraph.appendChild(breakNode);
+      Array.from(currentParagraph.childNodes).forEach((node) => mergedParagraph.appendChild(node.cloneNode(true)));
+      container.replaceChildren(mergedParagraph);
+      previous.replaceWith(container);
+      container.dataset.blockIndex = String(index - 1);
+      editing.index = index - 1;
+      editing.startLine = previousBlock.start_line;
+      editing.endLine = currentBlock.end_line;
+      editing.content = serializeBlockContent(container);
+      editing.mergeBoundary = breakNode;
+      editing.merging = true;
+      clearTimeout(app.saveTimer);
+      app.saveTimer = null;
+      setCaretAfter(breakNode);
+      container.dispatchEvent(new Event('input', { bubbles: true }));
+      editing.merging = false;
+      return true;
+    }
+
+    function removeMergeBoundary(container) {
+      const editing = app.editing;
+      const boundary = editing?.mergeBoundary;
+      if (!editing || !boundary || !container.contains(boundary)) return false;
+      const selection = window.getSelection();
+      if (!selection?.rangeCount || !selection.isCollapsed) return false;
+      const caret = document.createRange();
+      caret.setStartAfter(boundary);
+      caret.collapse(true);
+      const current = selection.getRangeAt(0);
+      if (current.startContainer !== caret.startContainer || current.startOffset !== caret.startOffset) return false;
+      const parent = boundary.parentNode;
+      const offset = Array.prototype.indexOf.call(parent.childNodes, boundary);
+      boundary.remove();
+      editing.mergeBoundary = null;
+      const range = document.createRange();
+      range.setStart(parent, Math.min(offset, parent.childNodes.length));
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      container.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+
+    async function persistBlock(index, content, close = false) {
+      const editing = app.editing;
+      if (!editing || editing.index !== index) return false;
+      if (editing.saving) {
+        editing.pending = { content, close };
+        return editing.saving;
+      }
+      const previousContent = app.content;
+      const requestPromise = (async () => {
+        editing.saving = true;
+        setStatus('');
+        try {
+          const emptyDocument = editing.endLine === 0;
+          const next = await request(emptyDocument ? '/api/document' : '/api/document/block', {
+            method: 'POST',
+            body: JSON.stringify(emptyDocument
+              ? documentPayload({ content, base_revision: app.revision })
+              : {
+                  content,
+                  start_line: editing.startLine,
+                  end_line: editing.endLine,
+                  base_revision: app.revision,
+                  document_id: app.documentId
+                })
+          });
+          if (app.editing !== editing) return true;
+          recordEdit(previousContent, next.content);
+          app.content = next.content;
+          app.title = next.title || app.title;
+          app.revision = next.revision;
+          app.blocks = next.blocks || [];
+          app.review = next.review || null;
+          updateDocumentEntry(next);
+          renderDocumentMenu();
+          editing.endLine = editing.startLine + lineCount(content);
+          if (close || !app.blocks[editing.index]) {
+            app.editing = null;
+            renderBlocks();
+          } else {
+            renderOutline();
+          }
+          setStatus('');
+          return true;
+        } catch (error) {
+          if (app.editing === editing) setStatus(error.message + '；请重新加载最新版本');
+          return false;
+        } finally {
+          editing.saving = null;
+          const pending = editing.pending;
+          editing.pending = null;
+          if (pending && app.editing === editing) await persistBlock(editing.index, pending.content, pending.close);
+        }
+      })();
+      editing.saving = requestPromise;
+      return requestPromise;
+    }
+
+    async function saveActiveBlock(close = true) {
+      const editing = app.editing;
+      if (!editing) return true;
+      clearTimeout(app.saveTimer);
+      app.saveTimer = null;
+      const container = activeContainer();
+      return persistBlock(editing.index, container ? serializeBlockContent(container) : editing.content, close);
+    }
+
+    async function save() {
+      if (!app.editing) return true;
+      return saveActiveBlock(true);
+    }
+
+    async function replaceDocument(content, render = true) {
+      const next = await request('/api/document', {
+        method: 'POST',
+        body: JSON.stringify(documentPayload({ content, base_revision: app.revision }))
+      });
+      app.content = next.content;
+      app.title = next.title || app.title;
+      app.revision = next.revision;
+      app.blocks = next.blocks || [];
+      app.review = next.review || null;
+      updateDocumentEntry(next);
+      renderDocumentMenu();
+      if (render) {
+        app.editing = null;
+        clearTimeout(app.saveTimer);
+        app.saveTimer = null;
+        renderBlocks();
+      }
+      updateHistoryButtons();
+    }
+
+    async function clearSelectedCanvas() {
+      const previousContent = app.content;
+      try {
+        await replaceDocument('');
+        recordEdit(previousContent, '');
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function importExampleContent(exampleId) {
+      if (app.historyBusy || !(await save())) return;
+      try {
+        closeExampleMenu();
+        const { content } = await request(`/api/default?example=${encodeURIComponent(exampleId)}`);
+        if (content === app.content) return;
+        if (app.content.trim() && !window.confirm('当前画布已有内容，确认覆盖替换为范例内容吗？')) return;
+        const previousContent = app.content;
+        app.historyBusy = true;
+        updateHistoryButtons();
+        await replaceDocument(content);
+        recordEdit(previousContent, content);
+        setStatus('');
+      } catch (error) {
+        setStatus(error.message);
+      } finally {
+        app.historyBusy = false;
+        updateHistoryButtons();
+      }
+    }
+
+    async function applyHistory(direction) {
+      if (app.historyBusy || !(await save())) return;
+      const source = direction === 'undo' ? app.undoStack : app.redoStack;
+      const target = source.pop();
+      if (!target) {
+        updateHistoryButtons();
+        return;
+      }
+      const destination = direction === 'undo' ? app.redoStack : app.undoStack;
+      destination.push(app.content);
+      app.historyBusy = true;
+      updateHistoryButtons();
+      try {
+        await replaceDocument(target);
+        setStatus('');
+      } catch (error) {
+        source.push(target);
+        destination.pop();
+        setStatus(error.message);
+      } finally {
+        app.historyBusy = false;
+        updateHistoryButtons();
+      }
+    }
+
+    function cancelBlockEdit() {
+      clearTimeout(app.saveTimer);
+      app.saveTimer = null;
+      if (!app.editing) return;
+      app.editing.cancelled = true;
+      app.editing = null;
+      hideSelectionToolbar();
+      renderBlocks();
+      setStatus('');
+    }
+
+    async function resolveReview(action) {
+      if (!app.review || app.reviewBusy) return;
+      app.reviewBusy = true;
+      updateHistoryButtons();
+      const previousContent = app.content;
+      try {
+        const next = await request(`/api/review/${action}`, {
+          method: 'POST',
+          body: JSON.stringify(documentPayload(action === 'accept' ? { base_revision: app.revision } : {}))
+        });
+        applyState(next);
+        if (action === 'accept') recordEdit(previousContent, next.content);
+        setStatus('');
+      } catch (error) {
+        setStatus(error.message);
+      } finally {
+        app.reviewBusy = false;
+        updateHistoryButtons();
+      }
+    }
+
+    async function beginBlockEdit(index, event) {
+      if (app.review) return;
+      if (app.editing?.index === index) {
+        const current = activeContainer();
+        if (current) {
+          const selectedRange = selectionRangeWithin(current);
+          if (selectedRange) {
+            restoreSelection(selectedRange);
+          } else {
+            current.focus({ preventScroll: true });
+            placeCaretAtPoint(current, event);
+          }
+        }
+        return;
+      }
+      const clickedContainer = preview.querySelector('[data-block-index="' + index + '"]');
+      const clickedHtml = clickedContainer?.innerHTML.trim();
+      const clickedDomCount = preview.querySelectorAll('.canvas-block').length;
+      const previousEditingIndex = app.editing?.index;
+      if (app.editing && !(await saveActiveBlock(true))) return;
+      const expectedIndex = previousEditingIndex != null && index > previousEditingIndex
+        ? index + app.blocks.length - clickedDomCount
+        : index;
+      if (clickedHtml) {
+        const matches = app.blocks
+          .map((block, blockIndex) => block.html.trim() === clickedHtml ? blockIndex : -1)
+          .filter((blockIndex) => blockIndex >= 0);
+        index = matches.find((blockIndex) => blockIndex >= expectedIndex) ?? matches[0] ?? expectedIndex;
+      } else {
+        index = expectedIndex;
+      }
+      const block = app.blocks[index] || (!app.blocks.length && index === 0
+        ? { start_line: 0, end_line: 0, content: '' }
+        : null);
+      const container = preview.querySelector('[data-block-index="' + index + '"]');
+      if (!block || !container) return;
+      const selectedRange = selectionRangeWithin(container);
+      app.editing = {
+        index,
+        startLine: block.start_line,
+        endLine: block.end_line,
+        content: block.content,
+        pending: null,
+        saving: null,
+        cancelled: false,
+        mergeBoundary: null,
+        merging: false
+      };
+      container.classList.add('editing');
+      if (!app.blocks.length) {
+        container.classList.remove('empty-state');
+        container.replaceChildren(document.createElement('p'));
+      }
+      container.contentEditable = 'true';
+      container.setAttribute('aria-label', '直接编辑此段内容');
+      container.spellcheck = false;
+      container.focus({ preventScroll: true });
+      if (!placeCaretInEmptyParagraph(container)) {
+        if (selectedRange) {
+          restoreSelection(selectedRange);
+          syncSelectionToolbar();
+        } else {
+          placeCaretAtPoint(container, event);
+        }
+      }
+      container.addEventListener('beforeinput', () => placeCaretInEmptyParagraph(container));
+      container.addEventListener('input', (event) => {
+        const content = serializeBlockContent(container);
+        app.editing.content = content;
+        if (!app.editing.merging) app.editing.mergeBoundary = null;
+        setStatus('');
+        if (event.isComposing) return;
+        clearTimeout(app.saveTimer);
+        app.saveTimer = setTimeout(() => {
+          app.saveTimer = null;
+          void persistBlock(Number(container.dataset.blockIndex), serializeBlockContent(container));
+        }, 450);
+      });
+      container.addEventListener('paste', (event) => {
+        const text = event.clipboardData?.getData('text/plain');
+        if (text == null) return;
+        event.preventDefault();
+        const selection = window.getSelection();
+        if (!selection?.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+        const node = document.createTextNode(text.replace(/\r\n?/g, '\n'));
+        range.insertNode(node);
+        selection.collapse(node, node.length);
+        container.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      container.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          cancelBlockEdit();
+        } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+          event.preventDefault();
+          selectCanvasContent(selectionCovers(container) ? preview : container);
+        } else if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+          event.preventDefault();
+          void saveActiveBlock(true);
+        } else if (event.key === 'Delete' || event.key === 'Backspace') {
+          if (selectionCovers(preview)) {
+            event.preventDefault();
+            void clearSelectedCanvas();
+          } else {
+            const index = Number(container.dataset.blockIndex);
+            if (removeMergeBoundary(container) || (caretAtStart(container) && mergeBlockAtStart(container, index))) {
+              event.preventDefault();
+            }
+          }
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          insertEditorBreak(container, !event.shiftKey);
+        }
+      });
+      container.addEventListener('focusout', () => {
+        const editing = app.editing;
+        window.setTimeout(() => {
+          if (!editing || editing.cancelled || app.editing !== editing
+            || container.contains(document.activeElement) || selectionToolbar.contains(document.activeElement)) return;
+          void saveActiveBlock(true);
+        }, 0);
+      });
+    }
+
+    function handleBlockClick(event) {
+      if (app.review) return;
+      if (event.target.closest('a')) return;
+      const container = event.target.closest('.canvas-block');
+      if (container) window.setTimeout(() => {
+        if (currentSelectionContext()?.crossBlock) {
+          syncSelectionToolbar();
+          return;
+        }
+        void beginBlockEdit(Number(container.dataset.blockIndex), event);
+      }, 0);
+    }
+
+    function handleBlockKeydown(event) {
+      if (app.review) return;
+      const container = event.target.closest('.canvas-block');
+      if (!container || event.target !== container || !['Enter', ' '].includes(event.key)) return;
+      if (app.editing?.index === Number(container.dataset.blockIndex)) return;
+      event.preventDefault();
+      void beginBlockEdit(Number(container.dataset.blockIndex), event);
+    }
+
+    preview.addEventListener('click', handleBlockClick);
+    document.addEventListener('pointerdown', (event) => {
+      const current = activeContainer();
+      const targetBlock = event.target.closest?.('.canvas-block');
+      if (current && !current.contains(event.target) && !selectionToolbar.contains(event.target)
+        && !(targetBlock && preview.contains(targetBlock))) {
+        hideSelectionToolbar();
+        void saveActiveBlock(true);
+      }
+    });
+    selectionToolbar.addEventListener('pointerdown', (event) => event.stopPropagation());
+    selectionBoldButton.addEventListener('click', () => void applySelectionCommand('bold'));
+    selectionItalicButton.addEventListener('click', () => void applySelectionCommand('italic'));
+    selectionQuoteButton.addEventListener('click', () => {
+      const quoted = selectionState?.container?.firstElementChild?.matches('BLOCKQUOTE');
+      void applySelectionFormat(quoted ? 'P' : 'BLOCKQUOTE');
+    });
+    selectionFormatMenuToggle.addEventListener('click', () => {
+      const opening = selectionFormatMenu.hidden;
+      selectionFormatMenu.hidden = !opening;
+      selectionFormatMenuToggle.setAttribute('aria-expanded', String(opening));
+    });
+    selectionFormatMenu.addEventListener('click', (event) => {
+      const option = event.target.closest('[data-format]');
+      if (!option) return;
+      closeSelectionFormatMenu();
+      void applySelectionFormat(option.dataset.format);
+    });
+    document.addEventListener('selectionchange', syncSelectionToolbar);
+    preview.addEventListener('keydown', handleBlockKeydown);
+    reloadButton.addEventListener('click', () => loadState(true));
+    defaultButton.addEventListener('click', () => {
+      closeDocumentMenu();
+      closeExportMenu();
+      const opening = exampleOptions.hidden;
+      exampleOptions.hidden = !opening;
+      defaultButton.setAttribute('aria-expanded', String(opening));
+    });
+    importTeslaExampleButton.addEventListener('click', () => void importExampleContent('tesla'));
+    importXiaomiExampleButton.addEventListener('click', () => void importExampleContent('xiaomi'));
+    undoButton.addEventListener('click', () => void applyHistory('undo'));
+    redoButton.addEventListener('click', () => void applyHistory('redo'));
+    copyButton.addEventListener('click', copyAllContent);
+    outlineToggle.addEventListener('click', () => setOutlineOpen(outlineToggle.getAttribute('aria-expanded') !== 'true'));
+    documentMenuToggle.addEventListener('click', () => {
+      closeExportMenu();
+      const opening = documentMenuOptions.hidden;
+      documentMenuOptions.hidden = !opening;
+      documentMenuToggle.setAttribute('aria-expanded', String(opening));
+    });
+    exportToggleButton.addEventListener('click', () => {
+      closeDocumentMenu();
+      const opening = exportOptions.hidden;
+      exportOptions.hidden = !opening;
+      exportToggleButton.setAttribute('aria-expanded', String(opening));
+    });
+    exportPdfButton.addEventListener('click', () => exportDocument('pdf', 'PDF'));
+    exportMarkdownButton.addEventListener('click', () => exportDocument('markdown', 'MD'));
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.export-menu')) closeExportMenu();
+      if (!event.target.closest('.document-menu')) closeDocumentMenu();
+      if (!event.target.closest('.example-menu')) closeExampleMenu();
+      if (!event.target.closest('.selection-format-menu-wrap')) closeSelectionFormatMenu();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeExportMenu();
+        closeDocumentMenu();
+        closeExampleMenu();
+        closeSelectionFormatMenu();
+      }
+    });
+    window.addEventListener('blur', () => { app.windowFocused = false; });
+    window.addEventListener('focus', () => { app.windowFocused = true; void syncCanvas(); });
+    document.addEventListener('visibilitychange', () => { app.windowFocused = !document.hidden && document.hasFocus(); });
+    window.addEventListener('scroll', handleCanvasScroll, { passive: true });
+    window.addEventListener('scroll', positionSelectionToolbar, { passive: true });
+    window.addEventListener('resize', () => { scheduleOutlineActive(); positionSelectionToolbar(); });
+    setInterval(() => void syncCanvas(), 2000);
+    void syncCanvas();
+
+    function closeExportMenu() {
+      exportOptions.hidden = true;
+      exportToggleButton.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeDocumentMenu() {
+      documentMenuOptions.hidden = true;
+      documentMenuToggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeExampleMenu() {
+      exampleOptions.hidden = true;
+      defaultButton.setAttribute('aria-expanded', 'false');
+    }
+
+    async function exportDocument(format, label) {
+      closeExportMenu();
+      if (!(await save())) return;
+        setStatus(`正在导出 ${label}…`);
+      try {
+        const link = document.createElement('a');
+        const query = app.documentId ? `?document_id=${encodeURIComponent(app.documentId)}` : '';
+        link.href = `/api/export/${format}${query}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setStatus(`已导出 ${label}`);
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
+    async function copyAllContent() {
+      if (!(await save())) return;
+      const text = app.content;
+      const fallbackCopy = () => {
+        const fallback = document.createElement('textarea');
+        fallback.value = text;
+        fallback.setAttribute('readonly', '');
+        fallback.style.position = 'fixed';
+        fallback.style.opacity = '0';
+        document.body.appendChild(fallback);
+        fallback.select();
+        const copied = document.execCommand('copy');
+        fallback.remove();
+        if (!copied) throw new Error('复制失败，请检查浏览器权限');
+      };
+      try {
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(text);
+          } catch {
+            fallbackCopy();
+          }
+        } else {
+          fallbackCopy();
+        }
+      } catch {
+        setStatus('复制失败，请检查浏览器权限');
+        return;
+      }
+      setStatus('已复制全文');
+      setTimeout(() => {
+        if (status.textContent === '已复制全文') setStatus('');
+      }, 1400);
+    }
+
+  </script>
+</body>
+</html>
