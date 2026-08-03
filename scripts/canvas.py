@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, quote, urlsplit
 
 import fcntl
 from markdown_it import MarkdownIt
+from markdown_it.token import Token
 
 
 HOST = "127.0.0.1"
@@ -45,6 +46,7 @@ LOCK_NAME = ".lock"
 PDF_FONT_NAME = "WritingCanvasCJK"
 PDF_FONT_BOLD_NAME = "WritingCanvasCJKBold"
 DOCUMENT_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+TASK_MARKER_PATTERN = re.compile(r"^\[([ xX])\](?:\s+|$)")
 
 
 class CanvasError(Exception):
@@ -241,7 +243,54 @@ def markdown_parser() -> MarkdownIt:
 
 
 def render_markdown(content: str) -> str:
-    return markdown_parser().render(content)
+    markdown = markdown_parser()
+    tokens = markdown.parse(content)
+    list_stack: list[Token] = []
+    list_item_stack: list[Token] = []
+    for token in tokens:
+        if token.type in {"bullet_list_open", "ordered_list_open"}:
+            list_stack.append(token)
+            continue
+        if token.type in {"bullet_list_close", "ordered_list_close"}:
+            if list_stack:
+                list_stack.pop()
+            continue
+        if token.type == "list_item_open":
+            list_item_stack.append(token)
+            continue
+        if token.type == "list_item_close":
+            if list_item_stack:
+                list_item_stack.pop()
+            continue
+        if not list_stack or not list_item_stack or token.type != "inline":
+            continue
+        match = TASK_MARKER_PATTERN.match(token.content)
+        children = token.children or []
+        if not match or not children or children[0].type != "text":
+            continue
+        current_list = list_stack[-1]
+        current_item = list_item_stack[-1]
+        if current_list.type == "bullet_list_open":
+            list_attrs = current_list.attrs or {}
+            list_attrs["class"] = "task-list"
+            current_list.attrs = list_attrs
+        item_attrs = current_item.attrs or {}
+        checked = match.group(1).lower() == "x"
+        item_attrs["class"] = "task-item task-item-completed" if checked else "task-item"
+        current_item.attrs = item_attrs
+        first_child = children[0]
+        first_child.content = first_child.content[match.end() :]
+        if not first_child.content:
+            children.pop(0)
+        token.content = token.content[match.end() :]
+        checkbox = Token("html_inline", "", 0)
+        checked_attribute = ' checked=""' if checked else ""
+        checkbox.content = (
+            '<input type="checkbox" class="task-checkbox" '
+            f'aria-label="核对清单项"{checked_attribute}>'
+        )
+        children.insert(0, checkbox)
+    return markdown.renderer.render(tokens, markdown.options, {})
 
 
 def markdown_blocks(content: str) -> list[dict[str, Any]]:
@@ -262,7 +311,7 @@ def markdown_blocks(content: str) -> list[dict[str, Any]]:
                 "start_line": start_line,
                 "end_line": end_line,
                 "content": block_content,
-                "html": markdown.render(block_content),
+                "html": render_markdown(block_content),
             }
         )
     return blocks
@@ -1129,8 +1178,10 @@ def self_check() -> None:
         "const containers = Array.from(preview.querySelectorAll('.canvas-block'))",
         "range.compareBoundaryPoints(Range.END_TO_START, contents) < 0",
         "range.compareBoundaryPoints(Range.START_TO_END, contents) > 0",
-        "if (!['UL', 'OL'].includes(value)) return false;",
-        "const list = document.createElement(value.toLowerCase());",
+        "if (!['UL', 'OL', 'TASK'].includes(value)) return false;",
+        "const list = document.createElement(value === 'TASK' ? 'ul' : value.toLowerCase());",
+        "list.className = 'task-list';",
+        "task-item task-item-completed",
         "if (value === 'P' && nestedList.matches('UL, OL')) {",
         "const paragraphs = document.createDocumentFragment();",
         "await replaceDocument(content, false);",
@@ -1139,6 +1190,10 @@ def self_check() -> None:
         'id="selection-quote"',
         "function syncSelectionToolbar()",
         "function applySelectionFormat(value)",
+        'data-format="TASK"',
+        "function handleCheckboxChange(event)",
+        "node.checked ? '[x] ' : '[ ] '",
+        "classList.toggle('task-item-completed'",
         "document.addEventListener('selectionchange', syncSelectionToolbar);",
         "function resolveReview(action)",
         'id="document-menu-toggle"',
@@ -1206,6 +1261,15 @@ def self_check() -> None:
         assert document_title("") == "未命名文档"
         assert state["title"] == "标题"
         assert build_pdf(initial).startswith(b"%PDF-")
+        checklist = "- [ ] 未完成\n- [x] 已完成\n"
+        checklist_html = render_markdown(checklist)
+        assert checklist_html.count('<input type="checkbox"') == 2
+        assert '<ul class="task-list">' in checklist_html
+        assert '<li class="task-item task-item-completed">' in checklist_html
+        assert 'aria-label="核对清单项" checked=""' in checklist_html
+        assert "[ ] 未完成" not in checklist_html
+        assert "[x] 已完成" not in checklist_html
+        assert build_pdf(checklist).startswith(b"%PDF-")
         table_markdown = "| 指标 | 数值 |\n|---|---:|\n| 收入 | 1 |\n"
         assert "<table>" in render_markdown(table_markdown)
         assert build_pdf(table_markdown).startswith(b"%PDF-")

@@ -124,6 +124,11 @@
     article code { padding: 2px 4px; border-radius: 4px; background: #eef2ff; }
     article pre code { padding: 0; background: transparent; }
     article blockquote { margin-left: 0; padding-left: 15px; border-left: 3px solid var(--ui-border-strong); color: var(--ui-text-muted); }
+    .task-list { padding-left: 0; list-style: none; }
+    .task-list > .task-item { margin-left: 0; }
+    .task-list > .task-item.task-item-completed { color: #8e8e8e; text-decoration-line: line-through; text-decoration-color: #8e8e8e; text-decoration-thickness: 1px; }
+    .task-list > .task-item.task-item-completed a, .task-list > .task-item.task-item-completed code { color: inherit; }
+    .task-checkbox { display: inline-block; width: 1em; height: 1em; margin: 0 .45em 0 0; font-size: inherit; vertical-align: -0.125em; accent-color: var(--ui-primary); cursor: pointer; }
     article table { width: 100%; margin: 16px 0; border-collapse: collapse; font-size: .95em; }
     article th, article td { padding: 8px 10px; border: 1px solid var(--ui-border); text-align: left; vertical-align: top; }
     article th { background: var(--ui-surface-subtle); color: var(--ui-text); font-weight: 600; }
@@ -248,6 +253,7 @@
         <button type="button" role="menuitem" data-format="H3" aria-current="false">标题 3</button>
         <button type="button" role="menuitem" data-format="UL" aria-current="false">无序列表</button>
         <button type="button" role="menuitem" data-format="OL" aria-current="false">有序列表</button>
+        <button type="button" role="menuitem" data-format="TASK" aria-current="false">核对清单</button>
       </div>
     </div>
   </div>
@@ -858,6 +864,7 @@
       if (node.nodeType !== Node.ELEMENT_NODE) return '';
       const tag = node.tagName.toLowerCase();
       if (tag === 'br') return '\n';
+      if (tag === 'input' && node.getAttribute('type') === 'checkbox') return node.checked ? '[x] ' : '[ ] ';
       const content = Array.from(node.childNodes).map(inlineMarkdown).join('');
       if (tag === 'strong' || tag === 'b') return `**${content}**`;
       if (tag === 'em' || tag === 'i') return `*${content}*`;
@@ -1008,8 +1015,11 @@
     }
 
     function updateSelectionFormatMenu(context) {
-      const tag = context.container.firstElementChild?.tagName;
-      const value = ['P', 'H1', 'H2', 'H3', 'UL', 'OL'].includes(tag) ? tag : 'P';
+      const source = context.container.firstElementChild;
+      const tag = source?.tagName;
+      const value = tag === 'UL' && source.querySelector('input[type="checkbox"]')
+        ? 'TASK'
+        : ['P', 'H1', 'H2', 'H3', 'UL', 'OL'].includes(tag) ? tag : 'P';
       selectionQuoteButton.setAttribute('aria-pressed', String(tag === 'BLOCKQUOTE'));
       selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => {
         option.setAttribute('aria-current', String(option.dataset.format === value));
@@ -1085,7 +1095,7 @@
         selectionItalicButton.disabled = crossBlock;
         selectionQuoteButton.disabled = crossBlock;
         selectionFormatMenu.querySelectorAll('[data-format]').forEach((option) => {
-          option.disabled = crossBlock && !['UL', 'OL'].includes(option.dataset.format);
+          option.disabled = crossBlock && !['UL', 'OL', 'TASK'].includes(option.dataset.format);
         });
         updateSelectionFormatMenu(context);
         positionSelectionToolbar();
@@ -1134,15 +1144,34 @@
         ? source.firstElementChild
         : source;
       const quoted = source.matches('BLOCKQUOTE');
-      const target = document.createElement(value.toLowerCase());
+      const isChecklist = value === 'TASK';
+      const target = document.createElement(isChecklist ? 'ul' : value.toLowerCase());
+      if (isChecklist) target.className = 'task-list';
       const sourceItems = nestedList.matches('UL, OL')
         ? Array.from(nestedList.children).filter((child) => child.tagName === 'LI')
         : [nestedList];
+      const cloneListItem = (item) => {
+        const clone = item.cloneNode(true);
+        const checkbox = clone.querySelector('input[type="checkbox"]');
+        const checked = Boolean(checkbox?.checked);
+        checkbox?.remove();
+        return { clone, checked };
+      };
 
-      if (value === 'UL' || value === 'OL') {
+      if (value === 'UL' || value === 'OL' || isChecklist) {
         sourceItems.forEach((item) => {
+          const sourceItem = cloneListItem(item);
           const li = document.createElement('li');
-          Array.from(item.childNodes).forEach((node) => li.appendChild(node.cloneNode(true)));
+          if (isChecklist) {
+            li.className = sourceItem.checked ? 'task-item task-item-completed' : 'task-item';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'task-checkbox';
+            checkbox.setAttribute('aria-label', '核对清单项');
+            checkbox.checked = sourceItem.checked;
+            li.appendChild(checkbox);
+          }
+          Array.from(sourceItem.clone.childNodes).forEach((node) => li.appendChild(node.cloneNode(true)));
           target.appendChild(li);
         });
       } else if (value === 'P' && quoted) {
@@ -1154,15 +1183,17 @@
       } else if (value === 'P' && nestedList.matches('UL, OL')) {
         const paragraphs = document.createDocumentFragment();
         sourceItems.forEach((item) => {
+          const sourceItem = cloneListItem(item);
           const paragraph = document.createElement('p');
-          Array.from(item.childNodes).forEach((node) => paragraph.appendChild(node.cloneNode(true)));
+          Array.from(sourceItem.clone.childNodes).forEach((node) => paragraph.appendChild(node.cloneNode(true)));
           paragraphs.appendChild(paragraph);
         });
         return paragraphs;
       } else {
         sourceItems.forEach((item, index) => {
+          const sourceItem = cloneListItem(item);
           if (index) target.appendChild(document.createElement('br'));
-          Array.from(item.childNodes).forEach((node) => target.appendChild(node.cloneNode(true)));
+          Array.from(sourceItem.clone.childNodes).forEach((node) => target.appendChild(node.cloneNode(true)));
         });
       }
       return target;
@@ -1181,7 +1212,7 @@
         syncSelectionToolbar();
         return true;
       }
-      if (!['UL', 'OL'].includes(value)) return false;
+      if (!['UL', 'OL', 'TASK'].includes(value)) return false;
       const indexes = state.containers.map((container) => Number(container.dataset.blockIndex));
       const firstIndex = indexes[0];
       if (indexes.some((index, position) => index !== firstIndex + position)) return false;
@@ -1191,7 +1222,8 @@
       const lastBlock = app.blocks[lastIndex];
       if (!firstBlock || !lastBlock) return false;
 
-      const list = document.createElement(value.toLowerCase());
+      const list = document.createElement(value === 'TASK' ? 'ul' : value.toLowerCase());
+      if (value === 'TASK') list.className = 'task-list';
       state.containers.forEach((container) => {
         const converted = convertContainerFormat(container, value);
         Array.from(converted.children).forEach((item) => list.appendChild(item.cloneNode(true)));
@@ -1644,6 +1676,10 @@
 
     function handleBlockClick(event) {
       if (app.review) return;
+      if (event.target.closest('input[type="checkbox"]')) {
+        event.stopPropagation();
+        return;
+      }
       if (event.target.closest('a')) return;
       const container = event.target.closest('.canvas-block');
       if (container) window.setTimeout(() => {
@@ -1656,6 +1692,43 @@
       else if (hasEmptyBodySlot()) window.setTimeout(() => void beginBlockEdit(1, event), 0);
     }
 
+    async function handleCheckboxChange(event) {
+      const checkbox = event.target.closest?.('input[type="checkbox"]');
+      if (!checkbox || !preview.contains(checkbox)) return;
+      if (app.review) {
+        checkbox.checked = !checkbox.checked;
+        return;
+      }
+      const container = checkbox.closest('.canvas-block');
+      const index = Number(container?.dataset.blockIndex);
+      if (!container || !Number.isInteger(index) || index < 0) return;
+      const checked = checkbox.checked;
+      const setCompleted = (target, value) => {
+        target.closest('li.task-item')?.classList.toggle('task-item-completed', value);
+      };
+      const checkboxIndex = Array.from(container.querySelectorAll('input[type="checkbox"]')).indexOf(checkbox);
+      if (checkboxIndex < 0) return;
+      setCompleted(checkbox, checked);
+      if (app.editing?.index !== index && !(await save())) {
+        checkbox.checked = !checked;
+        setCompleted(checkbox, !checked);
+        return;
+      }
+      if (app.editing?.index !== index) {
+        const nextContainer = preview.querySelector(`[data-block-index="${index}"]`);
+        const nextCheckbox = nextContainer?.querySelectorAll('input[type="checkbox"]')[checkboxIndex];
+        if (!nextCheckbox) {
+          checkbox.checked = !checked;
+          setCompleted(checkbox, !checked);
+          return;
+        }
+        nextCheckbox.checked = checked;
+        setCompleted(nextCheckbox, checked);
+        await beginBlockEdit(index);
+      }
+      if (app.editing?.index === index) await saveActiveBlock(true);
+    }
+
     function handleBlockKeydown(event) {
       if (app.review) return;
       const container = event.target.closest('.canvas-block');
@@ -1666,6 +1739,7 @@
     }
 
     preview.addEventListener('click', handleBlockClick);
+    preview.addEventListener('change', handleCheckboxChange);
     document.addEventListener('pointerdown', (event) => {
       const current = activeContainer();
       const targetBlock = event.target.closest?.('.canvas-block');
