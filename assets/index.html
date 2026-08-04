@@ -211,11 +211,13 @@
           <svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.5 10.5C3.675 10.5 3 11.175 3 12C3 12.825 3.675 13.5 4.5 13.5C5.325 13.5 6 12.825 6 12C6 11.175 5.325 10.5 4.5 10.5ZM19.5 10.5C18.675 10.5 18 11.175 18 12C18 12.825 18.675 13.5 19.5 13.5C20.325 13.5 21 12.825 21 12C21 11.175 20.325 10.5 19.5 10.5ZM12 10.5C11.175 10.5 10.5 11.175 10.5 12C10.5 12.825 11.175 13.5 12 13.5C12.825 13.5 13.5 13.5 13.5 12C13.5 11.175 12.825 10.5 12 10.5Z"></path></svg>
         </button>
         <div id="more-options" class="more-options" hidden role="menu">
-          <button id="export-pdf" type="button" role="menuitem">导出 PDF</button>
-          <button id="export-markdown" type="button" role="menuitem">导出 MD</button>
+          <button id="export-pdf" type="button" role="menuitem">导出为PDF</button>
+          <button id="export-markdown" type="button" role="menuitem">导出为MD</button>
+          <button id="import-markdown" type="button" role="menuitem">导入MD</button>
           <button id="import-tesla-example" type="button" role="menuitem">导入演示数据</button>
           <button id="create-document" type="button" role="menuitem">新建文档</button>
         </div>
+        <input id="import-markdown-file" type="file" accept=".md,text/markdown" hidden>
       </div>
       <button id="reload-latest">重新加载最新版本</button>
     </div>
@@ -268,6 +270,8 @@
     const moreOptions = document.querySelector('#more-options');
     const exportPdfButton = document.querySelector('#export-pdf');
     const exportMarkdownButton = document.querySelector('#export-markdown');
+    const importMarkdownButton = document.querySelector('#import-markdown');
+    const importMarkdownFileInput = document.querySelector('#import-markdown-file');
     const importTeslaExampleButton = document.querySelector('#import-tesla-example');
     const createDocumentButton = document.querySelector('#create-document');
     const documentMenuToggle = document.querySelector('#document-menu-toggle');
@@ -543,6 +547,7 @@
       moreToggleButton.disabled = blocked;
       exportPdfButton.disabled = blocked || !hasDocument;
       exportMarkdownButton.disabled = blocked || !hasDocument;
+      importMarkdownButton.disabled = blocked;
       importTeslaExampleButton.disabled = blocked;
       createDocumentButton.disabled = blocked;
       copyButton.disabled = !hasDocument;
@@ -1562,6 +1567,22 @@
       }
     }
 
+    async function importMarkdownContent(event) {
+      const input = event.target;
+      const file = input.files?.[0];
+      input.value = '';
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.md')) {
+        setStatus('请选择 .md 文件。');
+        return;
+      }
+      try {
+        await createDocument(await file.text());
+      } catch (error) {
+        setStatus(error.message);
+      }
+    }
+
     async function applyHistory(direction) {
       if (app.historyBusy || !(await save())) return;
       const source = direction === 'undo' ? app.undoStack : app.redoStack;
@@ -1876,6 +1897,11 @@
       moreToggleButton.setAttribute('aria-expanded', String(opening));
       header.classList.toggle('more-open', opening);
     });
+    importMarkdownButton.addEventListener('click', () => {
+      closeMoreMenu();
+      importMarkdownFileInput.click();
+    });
+    importMarkdownFileInput.addEventListener('change', importMarkdownContent);
     importTeslaExampleButton.addEventListener('click', () => void importExampleContent('tesla'));
     createDocumentButton.addEventListener('click', () => void createDocument());
     undoButton.addEventListener('click', () => void applyHistory('undo'));
