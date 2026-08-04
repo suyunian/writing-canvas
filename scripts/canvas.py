@@ -35,7 +35,6 @@ SKILL_DIR = SCRIPT_DIR.parent
 ASSET_PATH = SKILL_DIR / "assets" / "index.html"
 EXAMPLE_FILES = {
     "tesla": SKILL_DIR / "examples" / "tesla-2025-annual-report.md",
-    "xiaomi": SKILL_DIR / "examples" / "xiaomi-2025-annual-report.md",
 }
 DOCUMENT_NAME = "document.md"
 REVIEW_NAME = "review.json"
@@ -1169,9 +1168,7 @@ def ensure_service(data_dir: Path, port: int) -> str:
 def self_check() -> None:
     asset = ASSET_PATH.read_text(encoding="utf-8")
     assert EXAMPLE_FILES["tesla"].is_file()
-    assert EXAMPLE_FILES["xiaomi"].is_file()
     assert load_example_unlocked("tesla").startswith("# 2025年特斯拉年度报告\n")
-    assert load_example_unlocked("xiaomi").startswith("# 2025年小米年度报告\n")
     required_asset_markers = (
         "function selectCanvasContent(container)",
         "function selectionCovers(container)",
@@ -1201,12 +1198,18 @@ def self_check() -> None:
         "function resolveReview(action)",
         'id="document-menu-toggle"',
         "function renderDocumentMenu()",
+        'id="more-toggle"',
+        'id="more-options"',
+        'id="import-tesla-example"',
+        "导入演示数据",
+        'id="create-document"',
+        "moreToggleButton.disabled = blocked;",
+        "function closeMoreMenu()",
         "document-empty-state-icon",
         "暂无文档，请从文档菜单中新建文档",
         "function clearDocumentState()",
         "copyButton.disabled = !hasDocument;",
-        "exportToggleButton.disabled = !hasDocument;",
-        "if (!hasDocument) closeExportMenu();",
+        "exportPdfButton.disabled = blocked || !hasDocument;",
         "async function createDocument(content = '# 未命名文档\\n\\n')",
         "function hasEmptyBodySlot()",
         "container.className = 'canvas-block body-placeholder';",
@@ -1248,6 +1251,13 @@ def self_check() -> None:
         "app.title",
         "function lineCount(content)",
         "truncateDocumentTitle",
+        "defaultButton",
+        "exampleOptions",
+        "exportToggleButton",
+        "exportOptions",
+        "closeExampleMenu",
+        "closeExportMenu",
+        "document-menu-create",
         "reviewing",
     )
     present = [marker for marker in forbidden_asset_markers if marker in asset]

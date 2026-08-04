@@ -9,7 +9,7 @@
     * { box-sizing: border-box; }
     body { margin: 0; min-width: 0; background: var(--ui-surface); }
     header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; padding: 14px 20px; background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); position: sticky; top: 0; z-index: 2; }
-    header.export-open { z-index: 4; }
+    header.more-open { z-index: 4; }
     h1 { min-width: 0; margin: 0; overflow: hidden; font-size: 18px; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
     button { border: 1px solid var(--ui-border); border-radius: 7px; background: var(--ui-surface); color: var(--ui-text); padding: 7px 11px; cursor: pointer; }
     .toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
@@ -19,14 +19,10 @@
     .toolbar .icon-button:disabled { opacity: .4; cursor: default; }
     .toolbar .icon-button:disabled:hover { background: transparent; }
     #undo-button .mode-icon, #redo-button .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
-    .export-menu, .example-menu { position: relative; }
-    .export-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 118px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); }
-    .export-options button { width: 100%; text-align: left; border: 0; }
-    .export-options button:hover { background: var(--ui-hover); }
-    .example-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 180px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
-    .example-options button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: 0; }
-    .example-options .mode-icon { flex: 0 0 auto; width: 16px; height: 16px; fill: currentColor; stroke: none; }
-    .example-options button:hover { background: var(--ui-hover); }
+    .more-menu { position: relative; }
+    .more-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 150px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
+    .more-options button { width: 100%; text-align: left; border: 0; }
+    .more-options button:hover { background: var(--ui-hover); }
     .document-menu, .archive-menu { position: relative; }
     .document-menu-options, .archive-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
     .document-menu-option { display: flex; align-items: center; gap: 2px; border-radius: 7px; }
@@ -34,8 +30,6 @@
     .document-menu-select { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 32px; padding: 4px 8px; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; line-height: 1.4; text-align: left; }
     .document-menu-select:hover, .document-menu-select:focus-visible { background: transparent; }
     .document-menu-select[aria-current="true"] { font-weight: 600; }
-    .document-menu-create { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; margin-top: 4px; padding: 4px 8px; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; line-height: 1.4; text-align: left; }
-    .document-menu-create:hover, .document-menu-create:focus-visible { background: var(--ui-hover); }
     .document-menu-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 16px; height: 16px; margin-right: 3px; border: 0; border-radius: 50%; padding: 0; background: #9ca3af; color: #fff; opacity: 0; pointer-events: none; font-size: 12px; line-height: 1; }
     .document-menu-option:hover .document-menu-delete, .document-menu-option:focus-within .document-menu-delete { opacity: 1; pointer-events: auto; }
     .document-menu-delete:hover, .document-menu-delete:focus-visible { background: #6b7280; }
@@ -50,8 +44,8 @@
     .archive-menu-empty { min-height: 32px; padding: 4px 8px; color: var(--ui-text-muted); font-size: 14px; line-height: 1.4; }
     .document-menu-review { width: 6px; height: 6px; border-radius: 50%; background: var(--ui-primary); }
     .mode-icon { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .document-menu .mode-icon, .archive-menu .mode-icon, #default-button .mode-icon, #copy-button .mode-icon, #export-toggle .mode-icon { width: 16px; height: 16px; }
-    .document-menu .mode-icon, .archive-menu .mode-icon, #default-button .mode-icon { fill: currentColor; stroke: none; }
+    .document-menu .mode-icon, .archive-menu .mode-icon, #more-toggle .mode-icon, #copy-button .mode-icon { width: 16px; height: 16px; }
+    .document-menu .mode-icon, .archive-menu .mode-icon, #more-toggle .mode-icon { fill: currentColor; stroke: none; }
     #status { margin-left: auto; overflow: hidden; color: var(--ui-text-muted); font-size: 13px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
     #status:empty { display: none; }
     #reload-latest { display: none; }
@@ -209,25 +203,18 @@
         </button>
         <div id="archive-menu-options" class="archive-menu-options" hidden role="menu"></div>
       </div>
-      <div id="example-menu" class="example-menu">
-        <button id="default-button" class="icon-button" type="button" aria-label="导入范例" title="导入范例" aria-expanded="false" aria-controls="example-options">
-          <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 4H5V20H19V8H15V4ZM3 2.9918C3 2.44405 3.44749 2 3.9985 2H16L20.9997 7L21 20.9925C21 21.5489 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5447 3 21.0082V2.9918ZM11 11H13V17H11V11ZM11 7H13V9H11V7Z"></path></svg>
-        </button>
-        <div id="example-options" class="example-options" hidden role="menu">
-          <button id="import-tesla-example" type="button" role="menuitem">导入特斯拉年报范例</button>
-          <button id="import-xiaomi-example" type="button" role="menuitem">导入小米年报范例</button>
-        </div>
-      </div>
       <button id="copy-button" class="icon-button" type="button" aria-label="复制全文" title="复制全文">
         <svg class="mode-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true"><path d="M13 12.4316V7.8125C13 6.2592 14.2592 5 15.8125 5H40.1875C41.7408 5 43 6.2592 43 7.8125V32.1875C43 33.7408 41.7408 35 40.1875 35H35.5163" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.1875 13H7.8125C6.2592 13 5 14.2592 5 15.8125V40.1875C5 41.7408 6.2592 43 7.8125 43H32.1875C33.7408 43 35 41.7408 35 40.1875V15.8125C35 14.2592 33.7408 13 32.1875 13Z" stroke-width="4" stroke-linejoin="round"></path></svg>
       </button>
-      <div class="export-menu">
-        <button id="export-toggle" class="icon-button" type="button" aria-label="导出" title="导出" aria-expanded="false" aria-controls="export-options">
-          <svg class="mode-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 24.0083V42H42V24" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M33 23L24 32L15 23" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M23.9917 6V32" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <div class="more-menu">
+        <button id="more-toggle" class="icon-button" type="button" aria-label="更多" title="更多" aria-expanded="false" aria-controls="more-options">
+          <svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.5 10.5C3.675 10.5 3 11.175 3 12C3 12.825 3.675 13.5 4.5 13.5C5.325 13.5 6 12.825 6 12C6 11.175 5.325 10.5 4.5 10.5ZM19.5 10.5C18.675 10.5 18 11.175 18 12C18 12.825 18.675 13.5 19.5 13.5C20.325 13.5 21 12.825 21 12C21 11.175 20.325 10.5 19.5 10.5ZM12 10.5C11.175 10.5 10.5 11.175 10.5 12C10.5 12.825 11.175 13.5 12 13.5C12.825 13.5 13.5 13.5 13.5 12C13.5 11.175 12.825 10.5 12 10.5Z"></path></svg>
         </button>
-        <div id="export-options" class="export-options" hidden>
-          <button id="export-pdf" type="button">导出 PDF</button>
-          <button id="export-markdown" type="button">导出 MD</button>
+        <div id="more-options" class="more-options" hidden role="menu">
+          <button id="export-pdf" type="button" role="menuitem">导出 PDF</button>
+          <button id="export-markdown" type="button" role="menuitem">导出 MD</button>
+          <button id="import-tesla-example" type="button" role="menuitem">导入演示数据</button>
+          <button id="create-document" type="button" role="menuitem">新建文档</button>
         </div>
       </div>
       <button id="reload-latest">重新加载最新版本</button>
@@ -274,21 +261,19 @@
     const preview = document.querySelector('#preview');
     const status = document.querySelector('#status');
     const reloadButton = document.querySelector('#reload-latest');
-    const defaultButton = document.querySelector('#default-button');
     const undoButton = document.querySelector('#undo-button');
     const redoButton = document.querySelector('#redo-button');
     const copyButton = document.querySelector('#copy-button');
-    const exportToggleButton = document.querySelector('#export-toggle');
-    const exportOptions = document.querySelector('#export-options');
+    const moreToggleButton = document.querySelector('#more-toggle');
+    const moreOptions = document.querySelector('#more-options');
     const exportPdfButton = document.querySelector('#export-pdf');
     const exportMarkdownButton = document.querySelector('#export-markdown');
-    const exampleOptions = document.querySelector('#example-options');
     const importTeslaExampleButton = document.querySelector('#import-tesla-example');
-    const importXiaomiExampleButton = document.querySelector('#import-xiaomi-example');
+    const createDocumentButton = document.querySelector('#create-document');
     const documentMenuToggle = document.querySelector('#document-menu-toggle');
-      const documentMenuOptions = document.querySelector('#document-menu-options');
-      const archiveMenuToggle = document.querySelector('#archive-menu-toggle');
-      const archiveMenuOptions = document.querySelector('#archive-menu-options');
+    const documentMenuOptions = document.querySelector('#document-menu-options');
+    const archiveMenuToggle = document.querySelector('#archive-menu-toggle');
+    const archiveMenuOptions = document.querySelector('#archive-menu-options');
     const outlineToggle = document.querySelector('#outline-toggle');
     const outlinePanel = document.querySelector('#outline-panel');
     const outlineList = document.querySelector('#outline-list');
@@ -494,13 +479,6 @@
         option.appendChild(remove);
         documentMenuOptions.appendChild(option);
       });
-      const create = document.createElement('button');
-      create.className = 'document-menu-create';
-      create.type = 'button';
-      create.role = 'menuitem';
-      create.innerHTML = '<svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 2.00318V2H19.9978C20.5513 2 21 2.45531 21 2.9918V21.0082C21 21.556 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.5501 3 20.9932V8L9 2.00318ZM5.82918 8H9V4.83086L5.82918 8ZM11 4V9C11 9.55228 10.5523 10 10 10H5V20H19V4H11Z"></path></svg><span>新建文档</span>';
-      create.addEventListener('click', () => void createDocument());
-      documentMenuOptions.appendChild(create);
     }
 
     function renderArchiveMenu() {
@@ -562,11 +540,13 @@
       const hasDocument = Boolean(app.documentId);
       undoButton.disabled = blocked || !app.undoStack.length;
       redoButton.disabled = blocked || !app.redoStack.length;
-      defaultButton.disabled = blocked;
+      moreToggleButton.disabled = blocked;
+      exportPdfButton.disabled = blocked || !hasDocument;
+      exportMarkdownButton.disabled = blocked || !hasDocument;
+      importTeslaExampleButton.disabled = blocked;
+      createDocumentButton.disabled = blocked;
       copyButton.disabled = !hasDocument;
-      exportToggleButton.disabled = !hasDocument;
-      if (blocked) closeExampleMenu();
-      if (!hasDocument) closeExportMenu();
+      if (blocked) closeMoreMenu();
     }
 
     function recordEdit(previousContent, nextContent) {
@@ -679,6 +659,7 @@
       if (app.historyBusy || app.reviewBusy) return;
       if (!(await save())) return;
       closeDocumentMenu();
+      closeMoreMenu();
       try {
         const next = await request('/api/documents', {
           method: 'POST',
@@ -1573,7 +1554,7 @@
     async function importExampleContent(exampleId) {
       if (app.historyBusy || app.reviewBusy) return;
       try {
-        closeExampleMenu();
+        closeMoreMenu();
         const { content } = await request(`/api/default?example=${encodeURIComponent(exampleId)}`);
         await createDocument(content);
       } catch (error) {
@@ -1887,22 +1868,22 @@
     document.addEventListener('selectionchange', syncSelectionToolbar);
     preview.addEventListener('keydown', handleBlockKeydown);
     reloadButton.addEventListener('click', () => loadState(true));
-    defaultButton.addEventListener('click', () => {
+    moreToggleButton.addEventListener('click', () => {
       closeDocumentMenu();
       closeArchiveMenu();
-      closeExportMenu();
-      const opening = exampleOptions.hidden;
-      exampleOptions.hidden = !opening;
-      defaultButton.setAttribute('aria-expanded', String(opening));
+      const opening = moreOptions.hidden;
+      moreOptions.hidden = !opening;
+      moreToggleButton.setAttribute('aria-expanded', String(opening));
+      header.classList.toggle('more-open', opening);
     });
     importTeslaExampleButton.addEventListener('click', () => void importExampleContent('tesla'));
-    importXiaomiExampleButton.addEventListener('click', () => void importExampleContent('xiaomi'));
+    createDocumentButton.addEventListener('click', () => void createDocument());
     undoButton.addEventListener('click', () => void applyHistory('undo'));
     redoButton.addEventListener('click', () => void applyHistory('redo'));
     copyButton.addEventListener('click', copyAllContent);
     outlineToggle.addEventListener('click', () => setOutlineOpen(outlineToggle.getAttribute('aria-expanded') !== 'true'));
     documentMenuToggle.addEventListener('click', () => {
-      closeExportMenu();
+      closeMoreMenu();
       closeArchiveMenu();
       const opening = documentMenuOptions.hidden;
       documentMenuOptions.hidden = !opening;
@@ -1910,35 +1891,24 @@
     });
     archiveMenuToggle.addEventListener('click', () => {
       closeDocumentMenu();
-      closeExportMenu();
-      closeExampleMenu();
+      closeMoreMenu();
       const opening = archiveMenuOptions.hidden;
       archiveMenuOptions.hidden = !opening;
       archiveMenuToggle.setAttribute('aria-expanded', String(opening));
     });
-    exportToggleButton.addEventListener('click', () => {
-      closeDocumentMenu();
-      closeArchiveMenu();
-      const opening = exportOptions.hidden;
-      exportOptions.hidden = !opening;
-      exportToggleButton.setAttribute('aria-expanded', String(opening));
-      header.classList.toggle('export-open', opening);
-    });
     exportPdfButton.addEventListener('click', () => exportDocument('pdf', 'PDF'));
     exportMarkdownButton.addEventListener('click', () => exportDocument('markdown', 'MD'));
     document.addEventListener('click', (event) => {
-      if (!event.target.closest('.export-menu')) closeExportMenu();
+      if (!event.target.closest('.more-menu')) closeMoreMenu();
       if (!event.target.closest('.document-menu')) closeDocumentMenu();
       if (!event.target.closest('.archive-menu')) closeArchiveMenu();
-      if (!event.target.closest('.example-menu')) closeExampleMenu();
       if (!event.target.closest('.selection-format-menu-wrap')) closeSelectionFormatMenu();
     });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
-        closeExportMenu();
+        closeMoreMenu();
         closeDocumentMenu();
         closeArchiveMenu();
-        closeExampleMenu();
         closeSelectionFormatMenu();
       }
     });
@@ -1949,10 +1919,10 @@
     setInterval(() => void syncCanvas(), 2000);
     void syncCanvas();
 
-    function closeExportMenu() {
-      exportOptions.hidden = true;
-      exportToggleButton.setAttribute('aria-expanded', 'false');
-      header.classList.remove('export-open');
+    function closeMoreMenu() {
+      moreOptions.hidden = true;
+      moreToggleButton.setAttribute('aria-expanded', 'false');
+      header.classList.remove('more-open');
     }
 
     function closeDocumentMenu() {
@@ -1965,13 +1935,8 @@
       archiveMenuToggle.setAttribute('aria-expanded', 'false');
     }
 
-    function closeExampleMenu() {
-      exampleOptions.hidden = true;
-      defaultButton.setAttribute('aria-expanded', 'false');
-    }
-
     async function exportDocument(format, label) {
-      closeExportMenu();
+      closeMoreMenu();
       if (!(await save())) return;
         setStatus(`正在导出 ${label}…`);
       try {
