@@ -1196,6 +1196,10 @@ def self_check() -> None:
         "classList.toggle('task-item-completed'",
         "document.addEventListener('selectionchange', syncSelectionToolbar);",
         "function resolveReview(action)",
+        "stateRequestId: 0",
+        "const stateRequestId = ++app.stateRequestId;",
+        "if (stateRequestId !== app.stateRequestId) return;",
+        "app.stateRequestId += 1;",
         'id="document-menu-toggle"',
         "function renderDocumentMenu()",
         'id="more-toggle"',
@@ -1431,7 +1435,7 @@ def build_parser() -> argparse.ArgumentParser:
         "command",
         choices=["init", "list", "create", "read", "write", "propose", "ensure", "serve", "self-check"],
     )
-    parser.add_argument("--data-dir", type=Path, default=Path("/Users/suyunian/.codex/writing-canvas"))
+    parser.add_argument("--data-dir", type=Path, default=Path("/Users/suyunian/.codex/writing-canvas-data"))
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--expected-revision")
     parser.add_argument("--document-id")

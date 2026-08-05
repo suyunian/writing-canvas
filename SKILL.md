@@ -12,7 +12,7 @@ use a database, cloud service, account system, or system browser.
 ## Paths and runtime
 
 - Skill files: `/Users/suyunian/.codex/skills/writing-canvas`
-- Runtime data: `/Users/suyunian/.codex/writing-canvas`
+- Runtime data: `/Users/suyunian/.codex/writing-canvas-data`
 - Local URL: `http://127.0.0.1:39173/`
 - Service command: `python3 /Users/suyunian/.codex/skills/writing-canvas/scripts/canvas.py ensure`
 

@@ -291,7 +291,7 @@
     const selectionFormatMenuToggle = document.querySelector('#selection-format-menu-toggle');
     const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
     const selectionFormatMenu = document.querySelector('#selection-format-menu');
-    const app = { documentId: null, documents: [], archivedDocuments: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false };
+    const app = { documentId: null, documents: [], archivedDocuments: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false, stateRequestId: 0 };
     let outlineEntries = [];
     let outlineScrollFrame = 0;
     let outlineScrollEndTimer = 0;
@@ -856,8 +856,10 @@
     }
 
     async function loadState(force = false) {
+      const stateRequestId = ++app.stateRequestId;
       try {
         const next = await request(statePath());
+        if (stateRequestId !== app.stateRequestId) return;
         if (!force && app.revision && next.revision !== app.revision && app.editing) {
           reloadButton.style.display = 'inline-block';
           setStatus('画布已有外部更新；当前块编辑已保留');
@@ -1622,6 +1624,7 @@
     async function resolveReview(action) {
       if (!app.review || app.reviewBusy) return;
       app.reviewBusy = true;
+      app.stateRequestId += 1;
       updateHistoryButtons();
       const previousContent = app.content;
       try {
@@ -1629,6 +1632,7 @@
           method: 'POST',
           body: JSON.stringify(documentPayload(action === 'accept' ? { base_revision: app.revision } : {}))
         });
+        app.stateRequestId += 1;
         applyState(next);
         if (action === 'accept') recordEdit(previousContent, next.content);
         setStatus('');
