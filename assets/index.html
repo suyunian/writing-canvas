@@ -4,8 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title></title>
+  <script>
+    (() => {
+      try {
+        const theme = localStorage.getItem('writing-canvas-theme');
+        if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      } catch {}
+    })();
+  </script>
   <style>
-    :root { --outline-motion-duration: .24s; --outline-motion-ease: cubic-bezier(.22, 1, .36, 1); --ui-surface: #fff; --ui-surface-subtle: #f7f7f8; --ui-border: #e5e5e5; --ui-border-strong: #d1d5db; --ui-text: #2f2f2f; --ui-text-muted: #6b6b6b; --ui-hover: #f1f1f1; --ui-active: #e8e8e8; --ui-primary: #3b82f6; --ui-primary-strong: #2563eb; color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ui-text); background: var(--ui-surface); }
+    :root { --outline-motion-duration: .24s; --outline-motion-ease: cubic-bezier(.22, 1, .36, 1); --ui-surface: #fff; --ui-surface-subtle: #f7f7f8; --ui-border: #e5e5e5; --ui-border-strong: #d1d5db; --ui-text: #2f2f2f; --ui-text-muted: #6b6b6b; --ui-text-faint: #a0a6b1; --ui-hover: #f1f1f1; --ui-active: #e8e8e8; --ui-primary: #3b82f6; --ui-primary-strong: #2563eb; --ui-code-inline: #eef2ff; --ui-code-block: #111827; --ui-review-notice: #fff7ed; --ui-review-notice-text: #9a3412; --ui-review-notice-border: #fdba74; --ui-outline-gradient: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .45) 28%, rgba(255, 255, 255, .82) 58%, rgba(255, 255, 255, .98) 82%, rgba(255, 255, 255, .98) 100%); color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ui-text); background: var(--ui-surface); }
+    :root[data-theme="dark"] { --ui-surface: #181818; --ui-surface-subtle: #242424; --ui-border: #333; --ui-border-strong: #454545; --ui-text: #f2f2f2; --ui-text-muted: #b3b3b3; --ui-text-faint: #858585; --ui-hover: #2a2a2a; --ui-active: #353535; --ui-primary: #0a84ff; --ui-primary-strong: #409cff; --ui-code-inline: #292929; --ui-code-block: #202020; --ui-review-notice: #431407; --ui-review-notice-text: #fed7aa; --ui-review-notice-border: #c2410c; --ui-outline-gradient: linear-gradient(90deg, rgba(24, 24, 24, 0) 0%, rgba(24, 24, 24, .45) 28%, rgba(24, 24, 24, .82) 58%, rgba(24, 24, 24, .98) 82%, rgba(24, 24, 24, .98) 100%); color-scheme: dark; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --ui-surface: #181818; --ui-surface-subtle: #242424; --ui-border: #333; --ui-border-strong: #454545; --ui-text: #f2f2f2; --ui-text-muted: #b3b3b3; --ui-text-faint: #858585; --ui-hover: #2a2a2a; --ui-active: #353535; --ui-primary: #0a84ff; --ui-primary-strong: #409cff; --ui-code-inline: #292929; --ui-code-block: #202020; --ui-review-notice: #431407; --ui-review-notice-text: #fed7aa; --ui-review-notice-border: #c2410c; --ui-outline-gradient: linear-gradient(90deg, rgba(24, 24, 24, 0) 0%, rgba(24, 24, 24, .45) 28%, rgba(24, 24, 24, .82) 58%, rgba(24, 24, 24, .98) 82%, rgba(24, 24, 24, .98) 100%); color-scheme: dark; }
+    }
     * { box-sizing: border-box; }
     body { margin: 0; min-width: 0; background: var(--ui-surface); }
     header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; padding: 14px 20px; background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); position: sticky; top: 0; z-index: 2; }
@@ -19,9 +31,12 @@
     .toolbar .icon-button:disabled { opacity: .4; cursor: default; }
     .toolbar .icon-button:disabled:hover { background: transparent; }
     #undo-button .mode-icon, #redo-button .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
-    .more-menu { position: relative; }
-    .more-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 150px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
-    .more-options button { width: 100%; text-align: left; border: 0; }
+    .display-mode-menu, .more-menu { position: relative; }
+    .display-mode-options, .more-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 150px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
+    .display-mode-options button, .more-options button { width: 100%; text-align: left; border: 0; }
+    .theme-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .theme-option[aria-checked="true"] { font-weight: 600; }
+    .theme-option[aria-checked="true"]::after { content: '✓'; color: var(--ui-primary-strong); }
     .more-options button:hover { background: var(--ui-hover); }
     .document-menu, .archive-menu { position: relative; }
     .document-menu-options, .archive-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
@@ -44,8 +59,8 @@
     .archive-menu-empty { min-height: 32px; padding: 4px 8px; color: var(--ui-text-muted); font-size: 14px; line-height: 1.4; }
     .document-menu-review { width: 6px; height: 6px; border-radius: 50%; background: var(--ui-primary); }
     .mode-icon { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .document-menu .mode-icon, .archive-menu .mode-icon, #more-toggle .mode-icon, #copy-button .mode-icon { width: 16px; height: 16px; }
-    .document-menu .mode-icon, .archive-menu .mode-icon, #more-toggle .mode-icon { fill: currentColor; stroke: none; }
+    .document-menu .mode-icon, .archive-menu .mode-icon, #display-mode-toggle .mode-icon, #more-toggle .mode-icon, #copy-button .mode-icon { width: 16px; height: 16px; }
+    .document-menu .mode-icon, .archive-menu .mode-icon, #display-mode-toggle .mode-icon, #more-toggle .mode-icon { fill: currentColor; stroke: none; }
     #status { margin-left: auto; overflow: hidden; color: var(--ui-text-muted); font-size: 13px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
     #status:empty { display: none; }
     #reload-latest { display: none; }
@@ -93,13 +108,13 @@
     .canvas-block[data-block-index="0"] > p { min-height: 1.75em; margin: 0; }
     .canvas-block + .canvas-block > p { margin-top: 12px; }
     .canvas-block.body-placeholder > p { min-height: 1.75em; margin: 12px 0 0; }
-    .canvas-block.body-placeholder:not([contenteditable="true"]) > p::before { content: '点击此处输入正文'; color: #a0a6b1; }
+    .canvas-block.body-placeholder:not([contenteditable="true"]) > p::before { content: '点击此处输入正文'; color: var(--ui-text-faint); }
     .canvas-code-host { position: relative; }
     .canvas-code-actions { position: absolute; top: 20px; right: 8px; display: flex; gap: 4px; z-index: 1; }
     .canvas-code-actions button { padding: 4px 8px; border: 0; border-radius: 5px; background: rgba(255, 255, 255, .12); color: #e5e7eb; font-size: 12px; line-height: 1.2; }
     .canvas-code-actions button:hover, .canvas-code-actions button:focus-visible { background: rgba(255, 255, 255, .24); outline: none; }
     .document-empty-state { padding: 48px 20px; color: var(--ui-text-muted); text-align: center; }
-    .document-empty-state-icon { display: block; width: 40px; height: 40px; margin: 0 auto 14px; color: #c5cad3; }
+    .document-empty-state-icon { display: block; width: 40px; height: 40px; margin: 0 auto 14px; color: var(--ui-text-faint); }
     .review-change { position: relative; margin: 36px 0 22px; padding-top: 26px; }
     .review-actions { position: absolute; top: 0; left: 50%; display: flex; gap: 4px; padding: 7px; border: 1px solid var(--ui-border-strong); border-radius: 18px; background: var(--ui-surface); box-shadow: 0 4px 12px rgba(15, 23, 42, .14); transform: translate(-50%, -50%); z-index: 1; }
     .review-actions button { border: 0; border-radius: 13px; padding: 7px 13px; background: transparent; font-size: 15px; font-weight: 600; }
@@ -111,8 +126,8 @@
     .review-original h1, .review-original h2, .review-original h3, .review-original h4, .review-original h5, .review-original h6 { color: inherit; }
     .review-proposed { color: var(--ui-primary-strong); }
     .review-proposed h1, .review-proposed h2, .review-proposed h3, .review-proposed h4, .review-proposed h5, .review-proposed h6 { color: inherit; }
-    .review-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0; padding: 10px 12px; border-radius: 8px; background: #fff7ed; color: #9a3412; font-size: 14px; }
-    .review-notice button { padding: 5px 9px; border-color: #fdba74; color: #9a3412; }
+    .review-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0; padding: 10px 12px; border-radius: 8px; background: var(--ui-review-notice); color: var(--ui-review-notice-text); font-size: 14px; }
+    .review-notice button { padding: 5px 9px; border-color: var(--ui-review-notice-border); color: var(--ui-review-notice-text); }
     .empty-state { color: var(--ui-text-muted); text-align: center; padding: 48px 16px; }
     article h1, article h2, article h3 { line-height: 1.3; color: var(--ui-text); }
     article h1, article h2, article h3, article h4, article h5, article h6 { scroll-margin-top: 88px; }
@@ -121,10 +136,10 @@
     article h1 { margin: 0 0 18px; font-size: 2em; }
     article h2 { margin: 28px 0 12px; font-size: 1.5em; }
     article h3 { margin: 20px 0 8px; font-size: 1.25em; }
-    article pre { padding: 14px; border-radius: 7px; background: #111827; color: #e5e7eb; overflow-x: auto; }
+    article pre { padding: 14px; border-radius: 7px; background: var(--ui-code-block); color: #e5e7eb; overflow-x: auto; }
     article pre.canvas-code { padding-top: 46px; }
     article pre.canvas-code-wrap { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; }
-    article code { padding: 2px 4px; border-radius: 4px; background: #eef2ff; }
+    article code { padding: 2px 4px; border-radius: 4px; background: var(--ui-code-inline); }
     article pre code { padding: 0; background: transparent; }
     article blockquote { margin-left: 0; padding-left: 15px; border-left: 3px solid var(--ui-border-strong); color: var(--ui-text-muted); }
     .task-list { padding-left: 0; list-style: none; }
@@ -161,7 +176,7 @@
       main:not(.outline-open) .outline-sidebar .outline-toggle { width: 44px; height: 44px; padding: 11px 13px; }
       main:not(.outline-open) .outline-toggle .outline-collapsed-icon { display: none; }
       main:not(.outline-open) .outline-toggle .outline-mobile-icon { display: block; width: 18px; height: 18px; }
-      .outline-sidebar::after { content: ''; position: absolute; top: 0; left: -64px; right: auto; bottom: 0; width: 64px; background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .45) 28%, rgba(255, 255, 255, .82) 58%, rgba(255, 255, 255, .98) 82%, rgba(255, 255, 255, .98) 100%); opacity: 0; pointer-events: none; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease); }
+      .outline-sidebar::after { content: ''; position: absolute; top: 0; left: -64px; right: auto; bottom: 0; width: 64px; background: var(--ui-outline-gradient); opacity: 0; pointer-events: none; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease); }
       main.outline-open .outline-sidebar::after { opacity: 1; }
       .outline-panel { top: 74px; max-height: calc(100vh - 130px); padding: 10px 0; transition: opacity var(--outline-motion-duration) var(--outline-motion-ease), visibility 0s linear var(--outline-motion-duration); }
       main:not(.outline-open) .outline-panel { clip-path: inset(0); }
@@ -206,6 +221,16 @@
       <button id="copy-button" class="icon-button" type="button" aria-label="复制全文" title="复制全文">
         <svg class="mode-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" aria-hidden="true"><path d="M13 12.4316V7.8125C13 6.2592 14.2592 5 15.8125 5H40.1875C41.7408 5 43 6.2592 43 7.8125V32.1875C43 33.7408 41.7408 35 40.1875 35H35.5163" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M32.1875 13H7.8125C6.2592 13 5 14.2592 5 15.8125V40.1875C5 41.7408 6.2592 43 7.8125 43H32.1875C33.7408 43 35 41.7408 35 40.1875V15.8125C35 14.2592 33.7408 13 32.1875 13Z" stroke-width="4" stroke-linejoin="round"></path></svg>
       </button>
+      <div class="display-mode-menu">
+        <button id="display-mode-toggle" class="icon-button" type="button" aria-label="显示模式" title="显示模式" aria-expanded="false" aria-controls="display-mode-options">
+          <svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12C18 15.3137 15.3137 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16ZM11 1H13V4H11V1ZM11 20H13V23H11V20ZM3.51472 4.92893L4.92893 3.51472L7.05025 5.63604L5.63604 7.05025L3.51472 4.92893ZM16.9497 18.364L18.364 16.9497L20.4853 19.0711L19.0711 20.4853L16.9497 18.364ZM19.0711 3.51472L20.4853 4.92893L18.364 7.05025L16.9497 5.63604L19.0711 3.51472ZM5.63604 16.9497L7.05025 18.364L4.92893 20.4853L3.51472 19.0711L5.63604 16.9497ZM23 11V13H20V11H23ZM4 11V13H1V11H4Z"></path></svg>
+        </button>
+        <div id="display-mode-options" class="display-mode-options" hidden role="menu">
+          <button class="theme-option" type="button" role="menuitemradio" data-theme-preference="system" aria-checked="true">跟随系统</button>
+          <button class="theme-option" type="button" role="menuitemradio" data-theme-preference="light" aria-checked="false">浅色</button>
+          <button class="theme-option" type="button" role="menuitemradio" data-theme-preference="dark" aria-checked="false">深色</button>
+        </div>
+      </div>
       <div class="more-menu">
         <button id="more-toggle" class="icon-button" type="button" aria-label="更多" title="更多" aria-expanded="false" aria-controls="more-options">
           <svg class="mode-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.5 10.5C3.675 10.5 3 11.175 3 12C3 12.825 3.675 13.5 4.5 13.5C5.325 13.5 6 12.825 6 12C6 11.175 5.325 10.5 4.5 10.5ZM19.5 10.5C18.675 10.5 18 11.175 18 12C18 12.825 18.675 13.5 19.5 13.5C20.325 13.5 21 12.825 21 12C21 11.175 20.325 10.5 19.5 10.5ZM12 10.5C11.175 10.5 10.5 11.175 10.5 12C10.5 12.825 11.175 13.5 12 13.5C12.825 13.5 13.5 13.5 13.5 12C13.5 11.175 12.825 10.5 12 10.5Z"></path></svg>
@@ -266,6 +291,8 @@
     const undoButton = document.querySelector('#undo-button');
     const redoButton = document.querySelector('#redo-button');
     const copyButton = document.querySelector('#copy-button');
+    const displayModeToggleButton = document.querySelector('#display-mode-toggle');
+    const displayModeOptions = document.querySelector('#display-mode-options');
     const moreToggleButton = document.querySelector('#more-toggle');
     const moreOptions = document.querySelector('#more-options');
     const exportPdfButton = document.querySelector('#export-pdf');
@@ -274,6 +301,7 @@
     const importMarkdownFileInput = document.querySelector('#import-markdown-file');
     const importTeslaExampleButton = document.querySelector('#import-tesla-example');
     const createDocumentButton = document.querySelector('#create-document');
+    const themeOptionButtons = Array.from(document.querySelectorAll('[data-theme-preference]'));
     const documentMenuToggle = document.querySelector('#document-menu-toggle');
     const documentMenuOptions = document.querySelector('#document-menu-options');
     const archiveMenuToggle = document.querySelector('#archive-menu-toggle');
@@ -292,6 +320,33 @@
     const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
     const selectionFormatMenu = document.querySelector('#selection-format-menu');
     const app = { documentId: null, documents: [], archivedDocuments: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, switchBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false, stateRequestId: 0 };
+    const themeStorageKey = 'writing-canvas-theme';
+
+    function themePreference() {
+      try {
+        const value = localStorage.getItem(themeStorageKey);
+        return ['system', 'light', 'dark'].includes(value) ? value : 'system';
+      } catch {
+        return 'system';
+      }
+    }
+
+    function renderThemePreference() {
+      const preference = themePreference();
+      themeOptionButtons.forEach((button) => {
+        button.setAttribute('aria-checked', String(button.dataset.themePreference === preference));
+      });
+    }
+
+    function setThemePreference(preference) {
+      if (!['system', 'light', 'dark'].includes(preference)) return;
+      try {
+        localStorage.setItem(themeStorageKey, preference);
+      } catch {}
+      if (preference === 'system') delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = preference;
+      renderThemePreference();
+    }
     let outlineEntries = [];
     let outlineScrollFrame = 0;
     let outlineScrollEndTimer = 0;
@@ -544,6 +599,7 @@
       const hasDocument = Boolean(app.documentId);
       undoButton.disabled = blocked || !app.undoStack.length;
       redoButton.disabled = blocked || !app.redoStack.length;
+      displayModeToggleButton.disabled = blocked;
       moreToggleButton.disabled = blocked;
       documentMenuToggle.disabled = app.switchBusy;
       archiveMenuToggle.disabled = app.switchBusy;
@@ -1912,12 +1968,25 @@
     preview.addEventListener('keydown', handleBlockKeydown);
     reloadButton.addEventListener('click', () => loadState(true));
     moreToggleButton.addEventListener('click', () => {
+      closeDisplayModeMenu();
       closeDocumentMenu();
       closeArchiveMenu();
       const opening = moreOptions.hidden;
       moreOptions.hidden = !opening;
       moreToggleButton.setAttribute('aria-expanded', String(opening));
       header.classList.toggle('more-open', opening);
+    });
+    displayModeToggleButton.addEventListener('click', () => {
+      closeMoreMenu();
+      closeDocumentMenu();
+      closeArchiveMenu();
+      const opening = displayModeOptions.hidden;
+      displayModeOptions.hidden = !opening;
+      displayModeToggleButton.setAttribute('aria-expanded', String(opening));
+      header.classList.toggle('more-open', opening);
+    });
+    themeOptionButtons.forEach((button) => {
+      button.addEventListener('click', () => setThemePreference(button.dataset.themePreference));
     });
     importMarkdownButton.addEventListener('click', () => {
       closeMoreMenu();
@@ -1932,6 +2001,7 @@
     outlineToggle.addEventListener('click', () => setOutlineOpen(outlineToggle.getAttribute('aria-expanded') !== 'true'));
     documentMenuToggle.addEventListener('click', () => {
       closeMoreMenu();
+      closeDisplayModeMenu();
       closeArchiveMenu();
       const opening = documentMenuOptions.hidden;
       documentMenuOptions.hidden = !opening;
@@ -1940,6 +2010,7 @@
     archiveMenuToggle.addEventListener('click', () => {
       closeDocumentMenu();
       closeMoreMenu();
+      closeDisplayModeMenu();
       const opening = archiveMenuOptions.hidden;
       archiveMenuOptions.hidden = !opening;
       archiveMenuToggle.setAttribute('aria-expanded', String(opening));
@@ -1947,6 +2018,7 @@
     exportPdfButton.addEventListener('click', () => exportDocument('pdf', 'PDF'));
     exportMarkdownButton.addEventListener('click', () => exportDocument('markdown', 'MD'));
     document.addEventListener('click', (event) => {
+      if (!event.target.closest('.display-mode-menu')) closeDisplayModeMenu();
       if (!event.target.closest('.more-menu')) closeMoreMenu();
       if (!event.target.closest('.document-menu')) closeDocumentMenu();
       if (!event.target.closest('.archive-menu')) closeArchiveMenu();
@@ -1954,6 +2026,7 @@
     });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
+        closeDisplayModeMenu();
         closeMoreMenu();
         closeDocumentMenu();
         closeArchiveMenu();
@@ -1964,12 +2037,19 @@
     window.addEventListener('scroll', handleCanvasScroll, { passive: true });
     window.addEventListener('scroll', positionSelectionToolbar, { passive: true });
     window.addEventListener('resize', () => { scheduleOutlineActive(); positionSelectionToolbar(); });
+    renderThemePreference();
     setInterval(() => void syncCanvas(), 2000);
     void syncCanvas();
 
     function closeMoreMenu() {
       moreOptions.hidden = true;
       moreToggleButton.setAttribute('aria-expanded', 'false');
+      header.classList.remove('more-open');
+    }
+
+    function closeDisplayModeMenu() {
+      displayModeOptions.hidden = true;
+      displayModeToggleButton.setAttribute('aria-expanded', 'false');
       header.classList.remove('more-open');
     }
 
