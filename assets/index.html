@@ -291,7 +291,7 @@
     const selectionFormatMenuToggle = document.querySelector('#selection-format-menu-toggle');
     const selectionFormatMenuLabel = document.querySelector('#selection-format-menu-label');
     const selectionFormatMenu = document.querySelector('#selection-format-menu');
-    const app = { documentId: null, documents: [], archivedDocuments: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false, stateRequestId: 0 };
+    const app = { documentId: null, documents: [], archivedDocuments: [], revision: null, content: '', blocks: [], editing: null, review: null, reviewBusy: false, switchBusy: false, saveTimer: null, undoStack: [], redoStack: [], histories: {}, historyBusy: false, stateRequestId: 0 };
     let outlineEntries = [];
     let outlineScrollFrame = 0;
     let outlineScrollEndTimer = 0;
@@ -540,11 +540,13 @@
     }
 
     function updateHistoryButtons() {
-      const blocked = app.historyBusy || app.reviewBusy || app.review;
+      const blocked = app.historyBusy || app.reviewBusy || app.review || app.switchBusy;
       const hasDocument = Boolean(app.documentId);
       undoButton.disabled = blocked || !app.undoStack.length;
       redoButton.disabled = blocked || !app.redoStack.length;
       moreToggleButton.disabled = blocked;
+      documentMenuToggle.disabled = app.switchBusy;
+      archiveMenuToggle.disabled = app.switchBusy;
       exportPdfButton.disabled = blocked || !hasDocument;
       exportMarkdownButton.disabled = blocked || !hasDocument;
       importMarkdownButton.disabled = blocked;
@@ -577,18 +579,23 @@
     }
 
     async function switchDocument(documentId, persist = true) {
-      if (!documentId || documentId === app.documentId || app.historyBusy || app.reviewBusy) return;
-      if (!(await save())) return;
-      rememberHistory();
-      app.documentId = documentId;
-      restoreHistory(documentId);
-      app.editing = null;
-      app.revision = null;
-      app.content = '';
-      app.blocks = [];
-      app.review = null;
-      renderDocumentMenu();
+      if (!documentId || documentId === app.documentId || app.historyBusy || app.reviewBusy || app.switchBusy) return;
+      app.switchBusy = true;
+      app.stateRequestId += 1;
+      closeDocumentMenu();
+      closeArchiveMenu();
+      updateHistoryButtons();
       try {
+        if (!(await save())) return;
+        rememberHistory();
+        app.documentId = documentId;
+        restoreHistory(documentId);
+        app.editing = null;
+        app.revision = null;
+        app.content = '';
+        app.blocks = [];
+        app.review = null;
+        renderDocumentMenu();
         if (persist) {
           const listing = await request('/api/documents/active', {
             method: 'POST',
@@ -600,6 +607,9 @@
         setStatus('');
       } catch (error) {
         setStatus(error.message);
+      } finally {
+        app.switchBusy = false;
+        updateHistoryButtons();
       }
     }
 
@@ -690,8 +700,10 @@
     }
 
     async function syncCanvas() {
+      if (app.switchBusy) return;
       try {
         const listing = await request('/api/documents');
+        if (app.switchBusy) return;
         applyDocumentListing(listing);
         if (!listing.active_id && !app.documents.length) {
           if (app.documentId) clearDocumentState();
