@@ -79,6 +79,10 @@ Browser configuration:
    with 撤销/接受 controls. Do not write the document directly; the page's
    接受 action performs the revision-checked replacement.
 
+Annotation-driven edits must use this local CLI flow; do not click canvas blocks,
+move the mouse, simulate keyboard input, or manipulate `contenteditable`. The
+browser only needs to remain open for the page to receive its normal poll update.
+
 Do not create a second local mark format or infer a range from surrounding text.
 
 Export uses the local service endpoints `/api/export/markdown` and
@@ -86,6 +90,11 @@ Export uses the local service endpoints `/api/export/markdown` and
 Chinese font, and never sends document content to a remote service.
 
 ## Validation
+
+Do not start UI automation or browser validation by default. For copy, color,
+and static HTML/CSS changes, run only the checks below plus `git diff --check`;
+use browser validation only when the user explicitly requests it or the task
+specifically targets interaction, responsive layout, or visual regression.
 
 Run these checks after implementation or repair:
 
@@ -95,6 +104,7 @@ python3 /Users/suyunian/.codex/skills/.system/skill-creator/scripts/quick_valida
   /Users/suyunian/.codex/skills/writing-canvas
 ```
 
-The end-to-end check is: generate Markdown → open the in-app Browser → edit or
-preview → apply one built-in Browser modification to an exact source range →
-verify the page updates while all other text stays unchanged.
+When UI verification is explicitly requested, the end-to-end check is: generate
+Markdown → open the in-app Browser → edit or preview → apply one built-in Browser
+modification to an exact source range → verify the page updates while all other
+text stays unchanged.
