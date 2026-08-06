@@ -23,6 +23,7 @@
     header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px 16px; padding: 14px 20px; background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); position: sticky; top: 0; z-index: 2; }
     header.more-open { z-index: 4; }
     h1 { min-width: 0; margin: 0; overflow: hidden; font-size: 18px; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
+    .brand-secondary { color: var(--ui-text-faint); }
     button { border: 1px solid var(--ui-border); border-radius: 7px; background: var(--ui-surface); color: var(--ui-text); padding: 7px 11px; cursor: pointer; }
     .toolbar { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; min-width: 0; }
     .toolbar .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 7px; border: 0; border-radius: 50%; background: transparent; transition: background-color .15s ease, color .15s ease; }
@@ -205,7 +206,7 @@
 </head>
 <body>
   <header>
-    <div class="toolbar"><h1>Markdown Caves</h1><span id="status" role="status" aria-live="polite" aria-atomic="true">正在读取…</span></div>
+    <div class="toolbar"><h1>Writing <span class="brand-secondary">Canvas</span></h1><span id="status" role="status" aria-live="polite" aria-atomic="true">正在读取…</span></div>
     <div class="toolbar">
       <button id="undo-button" class="icon-button" type="button" aria-label="撤销" title="撤销" disabled>
         <svg class="mode-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5.82843 6.99955L8.36396 9.53509L6.94975 10.9493L2 5.99955L6.94975 1.0498L8.36396 2.46402L5.82843 4.99955H13C17.4183 4.99955 21 8.58127 21 12.9996C21 17.4178 17.4183 20.9996 13 20.9996H4V18.9996H13C16.3137 18.9996 19 16.3133 19 12.9996C19 9.68584 16.3137 6.99955 13 6.99955H5.82843Z"></path></svg>
