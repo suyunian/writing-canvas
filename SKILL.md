@@ -1,6 +1,6 @@
 ---
 name: writing-canvas
-description: "在本地写作画布中创建、编辑和预览 Markdown 文档。仅当用户明确要求‘用画布输出’、‘用写作块输出’、‘在写作画布中生成’、‘打开写作画布’或同义表达时使用；不要因普通的写作、保存或润色请求自动触发。画布选区来自 Codex 内置浏览器，修改建议在本地画布中预览并确认。"
+description: "在本地写作画布中创建、编辑和预览 Markdown 文档。用户明确要求‘用画布输出’、‘用写作块输出’、‘在写作画布中生成’、‘打开写作画布’或同义表达时使用；如果本会话已创建或打开画布，后续修改当前文档、调整内容、继续写作或新建文档也继续使用本 Skill；不要因与画布无关的普通写作、保存或润色请求自动触发。画布选区来自 Codex 内置浏览器，修改建议在本地画布中预览并确认。"
 ---
 
 # Writing Canvas
@@ -88,11 +88,14 @@ Do not create a second local mark format or infer a range from surrounding text.
 
 ## Use the proposal flow for direct conversation edits
 
-When the user asks in conversation to modify the current document without a
-browser mark, read the current document first, construct an exact
-`source`/`replacement` pair, and call `canvas.py propose`. This applies to
-local, multi-block, and whole-document edits. Keep `write` for explicit
-immediate-apply requests and direct in-canvas editing.
+When a conversation has already created or opened a Writing Canvas, treat
+follow-up requests to modify, rewrite, reorganize, or continue the current
+document as direct conversation edits even if the user does not repeat
+“Writing Canvas”. Read the current document first, construct an exact
+`source`/`replacement` pair, and call `canvas.py propose`; do not return only
+the changed content in chat. For a request to create another document, call
+`canvas.py create`. Keep `write` for explicit immediate-apply requests and
+direct in-canvas editing.
 
 Export uses the local service endpoints `/api/export/markdown` and
 `/api/export/pdf`; the latter uses the local `reportlab` runtime and a local
