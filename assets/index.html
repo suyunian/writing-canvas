@@ -891,13 +891,17 @@
       if (app.review && (app.review.stale || app.review.unsupported || app.review.block_index == null)) {
         renderReviewNotice();
       }
+      const reviewStart = app.review && !app.review.stale && !app.review.unsupported
+        ? app.review.block_index : null;
+      const reviewEnd = reviewStart == null ? null : (app.review.block_end_index ?? reviewStart);
       app.blocks.forEach((block, index) => {
+        if (reviewStart != null && index > reviewStart && index <= reviewEnd) return;
         const container = document.createElement('div');
         container.className = 'canvas-block';
         container.dataset.blockIndex = String(index);
         container.tabIndex = 0;
         container.setAttribute('aria-label', '点击编辑此段内容');
-        if (app.review && app.review.block_index === index && !app.review.stale && !app.review.unsupported) {
+        if (reviewStart === index) {
           renderReview(container, app.review);
         } else {
           container.innerHTML = block.html.trim();

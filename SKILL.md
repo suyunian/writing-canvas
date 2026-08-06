@@ -26,8 +26,9 @@ are not created or migrated.
 
 1. Generate the requested Markdown in the conversation.
 2. For a new document, pipe the Markdown to `canvas.py create --title <title>`;
-   for an existing document, use `canvas.py write --document-id <id>`. Replace
-   an existing document only when the user explicitly requested replacement.
+   for an existing document, use the proposal flow below for modifications.
+   Use `canvas.py write --document-id <id>` only when the user explicitly asks
+   to apply or replace content immediately.
 3. Run `canvas.py ensure` and use its URL.
 4. When `codex_app__open_in_codex` is available, call it with
    `{target:{type:"browser",url:<url>},placement:"right"}`. This is the
@@ -71,19 +72,27 @@ Browser configuration:
    that the selected source occurs exactly once at the expected location.
 3. Construct the replacement text in memory, changing only that selected range.
 4. Pipe `{"source": "...", "replacement": "..."}` to `canvas.py propose
-   --document-id <id> --expected-revision <revision>`. If the source is
-   missing, ambiguous, or the selection crosses multiple Markdown blocks, or
-   the revision changed, create no proposal and ask the user to re-mark a
-   single block or reload.
-5. Refresh or let the open page poll; it must show the old and proposed content
-   with 撤销/接受 controls. Do not write the document directly; the page's
-   接受 action performs the revision-checked replacement.
+   --document-id <id> --expected-revision <revision>`. A source may span
+   multiple contiguous Markdown blocks. If the source is missing, ambiguous,
+   does not map to a contiguous block range, or the revision changed, create no
+   proposal and ask the user to re-mark the selection or reload.
+5. Refresh or let the open page poll; it must show the affected old and proposed
+   content with 撤销/接受 controls. Do not write the document directly; the
+   page's 接受 action performs the revision-checked replacement.
 
 Annotation-driven edits must use this local CLI flow; do not click canvas blocks,
 move the mouse, simulate keyboard input, or manipulate `contenteditable`. The
 browser only needs to remain open for the page to receive its normal poll update.
 
 Do not create a second local mark format or infer a range from surrounding text.
+
+## Use the proposal flow for direct conversation edits
+
+When the user asks in conversation to modify the current document without a
+browser mark, read the current document first, construct an exact
+`source`/`replacement` pair, and call `canvas.py propose`. This applies to
+local, multi-block, and whole-document edits. Keep `write` for explicit
+immediate-apply requests and direct in-canvas editing.
 
 Export uses the local service endpoints `/api/export/markdown` and
 `/api/export/pdf`; the latter uses the local `reportlab` runtime and a local

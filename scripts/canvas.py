@@ -316,6 +316,28 @@ def markdown_blocks(content: str) -> list[dict[str, Any]]:
     return blocks
 
 
+def review_block_range(
+    content: str, blocks: list[dict[str, Any]], source: str
+) -> tuple[int, int] | None:
+    source_start = content.find(source)
+    if source_start < 0:
+        return None
+    source_end = source_start + len(source)
+    lines = content.splitlines(keepends=True)
+    offsets = [0]
+    for line in lines:
+        offsets.append(offsets[-1] + len(line))
+    indexes = [
+        index
+        for index, block in enumerate(blocks)
+        if offsets[block["start_line"]] < source_end
+        and offsets[block["end_line"]] > source_start
+    ]
+    if not indexes or indexes != list(range(indexes[0], indexes[-1] + 1)):
+        return None
+    return indexes[0], indexes[-1]
+
+
 def review_state(
     content: str, blocks: list[dict[str, Any]], review: dict[str, Any] | None
 ) -> dict[str, Any] | None:
@@ -333,20 +355,19 @@ def review_state(
     if not isinstance(source, str) or not source or not isinstance(replacement, str):
         result["unsupported"] = True
         return result
-    matches = [
-        (index, block)
-        for index, block in enumerate(blocks)
-        if source in block["content"]
-    ]
-    if len(matches) != 1:
+    block_range = review_block_range(content, blocks, source)
+    if block_range is None:
         result["unsupported"] = True
         return result
-    index, block = matches[0]
+    index, end_index = block_range
+    lines = content.splitlines(keepends=True)
+    block_content = "".join(lines[blocks[index]["start_line"] : blocks[end_index]["end_line"]])
     result.update(
         {
             "block_index": index,
-            "old_html": block["html"],
-            "new_html": render_markdown(block["content"].replace(source, replacement, 1)),
+            "block_end_index": end_index,
+            "old_html": render_markdown(block_content),
+            "new_html": render_markdown(block_content.replace(source, replacement, 1)),
         }
     )
     return result
@@ -858,8 +879,8 @@ def propose_document(
         check_revision(current_revision, expected_revision)
         if not source or current_content.count(source) != 1:
             raise CanvasError("待修改原文必须在当前文档中恰好出现一次。")
-        if sum(source in block["content"] for block in markdown_blocks(current_content)) != 1:
-            raise CanvasError("暂不支持跨多个 Markdown 块的修改，请只选择一个段落或列表。")
+        if review_block_range(current_content, markdown_blocks(current_content), source) is None:
+            raise CanvasError("待修改原文必须位于连续的 Markdown 块范围内。")
         existing = load_review_unlocked(data_dir, target_id)
         if existing and existing.get("base_revision") == current_revision:
             raise CanvasError("已有待确认修改，请先接受或撤销。")
@@ -1326,17 +1347,17 @@ def self_check() -> None:
         data_dir = Path(temporary)
         cross_block = "# 标题\n\n第一段。\n\n第二段。\n"
         state = write_document(data_dir, cross_block)
-        try:
-            propose_document(
-                data_dir,
-                "# 标题\n\n第一段。\n",
-                "# 新标题\n\n新第一段。\n",
-                state["revision"],
-            )
-        except CanvasError as error:
-            assert "跨多个 Markdown 块" in str(error)
-        else:
-            raise AssertionError("cross-block proposal was accepted")
+        proposed = propose_document(
+            data_dir,
+            "第一段。\n\n第二段。\n",
+            "修改后的第一段。\n\n修改后的第二段。\n",
+            state["revision"],
+        )
+        assert proposed["review"]["block_index"] == 1
+        assert proposed["review"]["block_end_index"] == 2
+        assert "修改后的第二段。" in proposed["review"]["new_html"]
+        accepted = accept_review(data_dir, state["revision"])
+        assert accepted["content"] == "# 标题\n\n修改后的第一段。\n\n修改后的第二段。\n"
     with tempfile.TemporaryDirectory(prefix="writing-canvas-documents-") as temporary:
         data_dir = Path(temporary)
         initial = "# 主文档\n\n保留主文档。\n"
