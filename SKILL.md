@@ -29,6 +29,31 @@ are not created or migrated.
    for an existing document, use the proposal flow below for modifications.
    Use `canvas.py write --document-id <id>` only when the user explicitly asks
    to apply or replace content immediately.
+
+For paginated or explicitly hierarchical Markdown requests, preserve the
+requested structure: use one document-level H1 for `<main title>`, H2 for direct
+section or page titles such as `<section title>`, and H3 for subheadings such as
+`<subheading>`. Never promote a page or section marker to H1. For formats without
+this hierarchy, follow the user's requested structure and the format's native
+conventions.
+
+For paginated documents, each H2 must include both the page marker and the
+complete page title. Do not repeat that title, or a contained variant of it, in
+the immediately following H3; reserve H3 for a distinct subheading only.
+
+For short label/value content within a section, keep the label and value in one
+paragraph, such as `**<label>：** <value>`. Do not make the label a standalone
+heading followed by a separate paragraph unless the user explicitly requests a
+subsection.
+
+Treat Markdown whitespace as structure, not decoration. Use a blank line only
+for a new independent paragraph or a true block boundary such as a heading,
+list, table, quote, code block, or page divider. Keep a compact information
+group--short sibling label/value rows and their immediate supporting text--in
+one paragraph: in Writing Canvas, use one physical newline between rows and no
+blank lines. Use a Markdown list for unlabeled peer facts or actions, with no
+blank lines between items. Never add blank lines merely to create visual space.
+
 3. Run `canvas.py ensure` and use its URL.
 4. When `codex_app__open_in_codex` is available, call it with
    `{target:{type:"browser",url:<url>},placement:"right"}`. This is the

@@ -123,8 +123,8 @@
     .canvas-code-actions button[aria-pressed="true"] .code-unwrap-icon { display: block; }
     .document-empty-state { padding: 48px 20px; color: var(--ui-text-muted); text-align: center; }
     .document-empty-state-icon { display: block; width: 40px; height: 40px; margin: 0 auto 14px; color: var(--ui-text-faint); }
-    .review-change { position: relative; margin: 36px 0 22px; padding-top: 26px; }
-    .review-actions { position: absolute; top: 0; left: 50%; display: flex; gap: 4px; padding: 7px; border: 1px solid var(--ui-border-strong); border-radius: 18px; background: var(--ui-surface); box-shadow: 0 4px 12px rgba(15, 23, 42, .14); transform: translate(-50%, -50%); z-index: 1; }
+    .review-change { margin: 36px 0 22px; }
+    .review-actions { display: flex; width: max-content; gap: 4px; margin: 18px auto 12px; padding: 7px; border: 1px solid var(--ui-border-strong); border-radius: 18px; background: var(--ui-surface); box-shadow: 0 4px 12px rgba(15, 23, 42, .14); }
     .review-actions button { border: 0; border-radius: 13px; padding: 7px 13px; background: transparent; font-size: 15px; font-weight: 600; }
     .review-actions button:hover { background: var(--ui-hover); }
     .review-actions .accept { background: var(--ui-primary); color: #fff; }
@@ -629,7 +629,7 @@
     }
 
     async function request(path, options = {}) {
-      const response = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...options });
+      const response = await fetch(path, { cache: 'no-store', headers: { 'Content-Type': 'application/json' }, ...options });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || `请求失败（${response.status}）`);
       return payload;
@@ -817,7 +817,7 @@
       proposed.className = 'review-proposed';
       proposed.setAttribute('aria-label', '修改后内容');
       proposed.innerHTML = review.new_html || '';
-      change.append(actions, original, proposed);
+      change.append(original, actions, proposed);
       container.setAttribute('aria-label', '待确认修改');
       container.appendChild(change);
     }
@@ -941,7 +941,12 @@
       updateDocumentEntry(next);
       renderDocumentMenu();
       reloadButton.style.display = 'none';
-      if (!editing && (stateChanged || reviewChanged)) renderBlocks();
+      if (!editing && (stateChanged || reviewChanged)) {
+        renderBlocks();
+        if (reviewChanged && next.review && !next.review.stale && !next.review.unsupported) {
+          preview.querySelector('.review-actions')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
       updateHistoryButtons();
     }
 
@@ -1496,15 +1501,29 @@
       const previousParagraph = previous?.children.length === 1 && previous.firstElementChild?.tagName === 'P'
         ? previous.firstElementChild
         : null;
+      const previousHeading = previous?.children.length === 1 && previous.firstElementChild?.tagName === 'H4'
+        ? previous.firstElementChild
+        : null;
       const currentParagraph = container.children.length === 1 && container.firstElementChild?.tagName === 'P'
         ? container.firstElementChild
         : null;
-      if (!editing || editing.index !== index || !previousBlock || !currentBlock || !previousParagraph || !currentParagraph) return false;
+      if (!editing || editing.index !== index || !previousBlock || !currentBlock || !currentParagraph || (!previousParagraph && !previousHeading)) return false;
 
-      const mergedParagraph = previousParagraph.cloneNode(false);
-      Array.from(previousParagraph.childNodes).forEach((node) => mergedParagraph.appendChild(node.cloneNode(true)));
-      const breakNode = document.createElement('br');
-      mergedParagraph.appendChild(breakNode);
+      const mergedParagraph = document.createElement('p');
+      let caretNode;
+      let breakNode = null;
+      if (previousHeading) {
+        const label = document.createElement('strong');
+        const text = previousHeading.textContent.trim();
+        label.textContent = /[：:]$/.test(text) ? text : `${text}：`;
+        mergedParagraph.append(label, document.createTextNode(' '));
+        caretNode = label;
+      } else {
+        Array.from(previousParagraph.childNodes).forEach((node) => mergedParagraph.appendChild(node.cloneNode(true)));
+        breakNode = document.createElement('br');
+        mergedParagraph.appendChild(breakNode);
+        caretNode = breakNode;
+      }
       Array.from(currentParagraph.childNodes).forEach((node) => mergedParagraph.appendChild(node.cloneNode(true)));
       container.replaceChildren(mergedParagraph);
       previous.replaceWith(container);
@@ -1517,7 +1536,7 @@
       editing.merging = true;
       clearTimeout(app.saveTimer);
       app.saveTimer = null;
-      setCaretAfter(breakNode);
+      setCaretAfter(caretNode);
       container.dispatchEvent(new Event('input', { bubbles: true }));
       editing.merging = false;
       return true;
