@@ -21,6 +21,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Install Chinese PDF font
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y fonts-noto-cjk
       - name: Install required dependencies
         run: python -m pip install -r requirements-pdf.txt
       - name: Run repository checks
