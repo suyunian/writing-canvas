@@ -1,4 +1,28 @@
 backups/
+
+# Codex and Writing Canvas runtime data
+writing-canvas-data/
+.codex/
+*.log
+*.lock
+
+# Python caches and local environments
 **/__pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.coverage
+coverage/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+
+# macOS and editor files
 .DS_Store
+.AppleDouble
+.LSOverride
+._*

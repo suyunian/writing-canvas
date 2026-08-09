@@ -48,6 +48,11 @@ DOCUMENT_ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 TASK_MARKER_PATTERN = re.compile(r"^\[([ xX])\](?:\s+|$)")
 
 
+def default_data_dir() -> Path:
+    codex_home = os.environ.get("CODEX_HOME") or str(Path.home() / ".codex")
+    return Path(codex_home).expanduser() / "writing-canvas-data"
+
+
 class CanvasError(Exception):
     """Expected user/data error that should not produce a traceback."""
 
@@ -1456,7 +1461,7 @@ def build_parser() -> argparse.ArgumentParser:
         "command",
         choices=["init", "list", "create", "read", "write", "propose", "ensure", "serve", "self-check"],
     )
-    parser.add_argument("--data-dir", type=Path, default=Path("/Users/suyunian/.codex/writing-canvas-data"))
+    parser.add_argument("--data-dir", type=Path, default=default_data_dir())
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--expected-revision")
     parser.add_argument("--document-id")

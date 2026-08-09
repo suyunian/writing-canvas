@@ -11,16 +11,18 @@ use a database, cloud service, account system, or system browser.
 
 ## Paths and runtime
 
-- Skill files: `/Users/suyunian/.codex/skills/writing-canvas`
-- Runtime data: `/Users/suyunian/.codex/writing-canvas-data`
+- Skill source: the directory containing this `SKILL.md`.
+- Runtime data: `$CODEX_HOME/writing-canvas-data` (default: `~/.codex/writing-canvas-data`)
 - Local URL: `http://127.0.0.1:39173/`
-- Service command: `python3 /Users/suyunian/.codex/skills/writing-canvas/scripts/canvas.py ensure`
+- Service command: `python3 <skill-root>/scripts/canvas.py ensure`
 
 The service must bind only to `127.0.0.1`. `ensure` initializes the runtime
 document, reuses a healthy existing service, or starts one in the background.
 Documents are stored independently under the runtime `documents/` directory.
 The runtime uses the indexed `main` document directly; legacy root-level files
 are not created or migrated.
+The service has no remote multi-user authentication and must not be exposed to
+the public network.
 
 ## Generate or open a canvas
 
@@ -136,10 +138,13 @@ specifically targets interaction, responsive layout, or visual regression.
 Run these checks after implementation or repair:
 
 ```bash
-python3 /Users/suyunian/.codex/skills/writing-canvas/scripts/canvas.py self-check
-python3 /Users/suyunian/.codex/skills/.system/skill-creator/scripts/quick_validate.py \
-  /Users/suyunian/.codex/skills/writing-canvas
+python3 scripts/canvas.py self-check
+./scripts/check.sh
 ```
+
+Run the host-provided Skill validator separately when your Codex installation
+provides one; the repository checks stay self-contained and do not depend on a
+private Codex directory.
 
 When UI verification is explicitly requested, the end-to-end check is: generate
 Markdown → open the in-app Browser → edit or preview → apply one built-in Browser
