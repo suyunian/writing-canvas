@@ -32,6 +32,8 @@
     .toolbar .icon-button.copy-feedback { background: var(--ui-hover); color: var(--ui-text-muted); }
     .toolbar .icon-button:disabled { opacity: .4; cursor: default; }
     .toolbar .icon-button:disabled:hover { background: transparent; }
+    #document-menu-toggle { position: relative; }
+    #document-menu-toggle.has-review::after { content: ""; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--ui-primary); }
     #undo-button .mode-icon, #redo-button .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
     .display-mode-menu, .more-menu { position: relative; }
     .display-mode-options, .more-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 4px; min-width: 150px; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
@@ -505,6 +507,10 @@
     }
 
     function renderDocumentMenu() {
+      const hasReview = app.documents.some((doc) => doc.has_review);
+      documentMenuToggle.classList.toggle('has-review', hasReview);
+      documentMenuToggle.title = hasReview ? '切换文档（有待确认修改）' : '切换文档';
+      documentMenuToggle.setAttribute('aria-label', documentMenuToggle.title);
       documentMenuOptions.replaceChildren();
       app.documents.forEach((doc) => {
         const title = doc.title || '未命名文档';

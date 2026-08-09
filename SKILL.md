@@ -29,8 +29,8 @@ the public network.
 1. Generate the requested Markdown in the conversation.
 2. For a new document, pipe the Markdown to `canvas.py create --title <title>`;
    for an existing document, use the proposal flow below for modifications.
-   Use `canvas.py write --document-id <id>` only when the user explicitly asks
-   to apply or replace content immediately.
+   Use `canvas.py write` only for explicit immediate apply/replace; omit
+   `--document-id` unless the user explicitly names another document.
 
 For paginated or explicitly hierarchical Markdown requests, preserve the
 requested structure: use one document-level H1 for `<main title>`, H2 for direct
@@ -88,6 +88,11 @@ original block with a deletion line and the proposed block in blue, with
 revision; it applies external changes when there are no unsaved local edits and
 otherwise keeps the local text and asks the user to reload.
 
+For Codex-driven edits, omit `--document-id` by default: `read`, `propose`, and
+`write` then resolve the service's `active_id`. Only pass `--document-id <id>`
+when the user explicitly names another document; never reuse an ID from an
+earlier turn as the default target.
+
 ## Use Codex's built-in marking
 
 When the user asks to follow a mark or modification created by Codex's built-in
@@ -95,11 +100,11 @@ Browser configuration:
 
 1. Read the exact selected source text and modification instruction exposed by
    the current Codex context.
-2. Read the target canvas with `canvas.py read --document-id <id>` and verify
+2. Read the active canvas with `canvas.py read` and verify
    that the selected source occurs exactly once at the expected location.
 3. Construct the replacement text in memory, changing only that selected range.
 4. Pipe `{"source": "...", "replacement": "..."}` to `canvas.py propose
-   --document-id <id> --expected-revision <revision>`. A source may span
+   --expected-revision <revision>`. A source may span
    multiple contiguous Markdown blocks. If the source is missing, ambiguous,
    does not map to a contiguous block range, or the revision changed, create no
    proposal and ask the user to re-mark the selection or reload.
