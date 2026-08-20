@@ -14,6 +14,7 @@ use a database, cloud service, account system, or system browser.
 - Skill source: the directory containing this `SKILL.md`.
 - Runtime data: `$CODEX_HOME/writing-canvas-data` (default: `~/.codex/writing-canvas-data`)
 - Local URL: `http://127.0.0.1:39173/`
+- Runtime dependencies: install `<skill-root>/requirements.txt` once in the same Python environment that runs `canvas.py`.
 - Service command: `python3 <skill-root>/scripts/canvas.py ensure`
 
 The service must bind only to `127.0.0.1`. `ensure` initializes the runtime
@@ -56,7 +57,7 @@ one paragraph: in Writing Canvas, use one physical newline between rows and no
 blank lines. Use a Markdown list for unlabeled peer facts or actions, with no
 blank lines between items. Never add blank lines merely to create visual space.
 
-3. Run `canvas.py ensure` and use its URL.
+3. In the same Python environment, run `python3 -m pip install -r <skill-root>/requirements.txt` when setting up or updating the Skill, then run `canvas.py ensure` and use its URL.
 4. When `codex_app__open_in_codex` is available, call it with
    `{target:{type:"browser",url:<url>},placement:"right"}`. This is the
    Codex in-app Browser path; never call `open`, `start`, `xdg-open`, or another
@@ -131,7 +132,9 @@ direct in-canvas editing.
 
 Export uses the local service endpoints `/api/export/markdown` and
 `/api/export/pdf`; the latter uses the local `reportlab` runtime and a local
-Chinese font, and never sends document content to a remote service.
+Chinese font, and never sends document content to a remote service. The PDF
+dependency is part of `requirements.txt` so hosts that install the base
+requirements also have working PDF export.
 
 ## Validation
 
