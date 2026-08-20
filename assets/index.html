@@ -43,7 +43,7 @@
     .theme-option[aria-checked="true"] { font-weight: 600; }
     .more-options button:hover { background: var(--ui-hover); }
     .document-menu, .archive-menu { position: relative; }
-    .document-menu-options, .archive-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; min-width: 220px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
+    .document-menu-options, .archive-menu-options { position: absolute; top: calc(100% + 6px); right: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-width: 260px; max-width: min(360px, 80vw); max-height: min(60vh, 360px); overflow-y: auto; padding: 6px; background: var(--ui-surface); border: 1px solid var(--ui-border); border-radius: 8px; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); z-index: 3; }
     .document-menu-option { display: flex; align-items: center; gap: 2px; border-radius: 7px; }
     .document-menu-option:hover, .document-menu-option:focus-within, .document-menu-option.selected { background: var(--ui-hover); }
     .document-menu-select { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; min-height: 32px; padding: 4px 8px; border: 0; background: transparent; color: var(--ui-text); font-size: 14px; line-height: 1.4; text-align: left; }
@@ -55,7 +55,7 @@
     .document-menu-archive { background: transparent; color: var(--ui-text-muted); }
     .document-menu-archive:hover, .document-menu-archive:focus-visible { background: transparent; color: var(--ui-text); }
     .document-menu-delete .mode-icon, .document-menu-restore .mode-icon { width: 16px; height: 16px; fill: currentColor; stroke: none; }
-    .document-menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .document-menu-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .document-menu-archive-actions { display: flex; flex: 0 0 auto; gap: 3px; margin-right: 3px; }
     .document-menu-restore { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 16px; height: 16px; margin-right: 3px; border: 0; border-radius: 50%; padding: 0; background: transparent; color: var(--ui-text-muted); opacity: 0; pointer-events: none; }
     .document-menu-archived:hover .document-menu-restore, .document-menu-archived:focus-within .document-menu-restore { opacity: 1; pointer-events: auto; }
@@ -501,11 +501,6 @@
       updateHistoryButtons();
     }
 
-    function menuDisplayTitle(title) {
-      const chars = Array.from(title);
-      return chars.length > 15 ? chars.slice(0, 15).join('') + '…' : title;
-    }
-
     function renderDocumentMenu() {
       const hasReview = app.documents.some((doc) => doc.has_review);
       documentMenuToggle.classList.toggle('has-review', hasReview);
@@ -526,7 +521,7 @@
         select.setAttribute('aria-label', title);
         const label = document.createElement('span');
         label.className = 'document-menu-label';
-        label.textContent = menuDisplayTitle(title);
+        label.textContent = title;
         select.appendChild(label);
         if (doc.has_review) {
           const dot = document.createElement('span');
@@ -575,7 +570,7 @@
         label.setAttribute('aria-label', `${title}，已归档`);
         const text = document.createElement('span');
         text.className = 'document-menu-label';
-        text.textContent = menuDisplayTitle(title);
+        text.textContent = title;
         label.appendChild(text);
         option.appendChild(label);
         const actions = document.createElement('div');
