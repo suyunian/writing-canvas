@@ -16,10 +16,10 @@ print("dependency check: markdown-it-py OK")
 
 try:
     import reportlab  # noqa: F401
-except ModuleNotFoundError:
-    print("optional dependency check: reportlab not installed (PDF export unavailable)")
-else:
-    print("optional dependency check: reportlab OK")
+except ImportError as error:
+    raise SystemExit("reportlab is required for PDF export; install requirements.txt") from error
+
+print("dependency check: reportlab OK")
 PY
 python3 -m py_compile "$repo_root/scripts/canvas.py"
 

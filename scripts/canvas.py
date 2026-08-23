@@ -447,7 +447,9 @@ def build_pdf(content: str) -> bytes:
             TableStyle,
         )
     except ImportError as error:
-        raise CanvasError("PDF 导出依赖不可用，请安装 reportlab。") from error
+        raise CanvasError(
+            "PDF 导出依赖不可用，请使用当前 Python 安装 requirements.txt。"
+        ) from error
 
     user_font_dir = Path.home() / "Library" / "Fonts"
     regular_font_candidates = (

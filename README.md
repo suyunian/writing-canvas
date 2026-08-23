@@ -72,7 +72,7 @@ proposal，避免“改一处、动全篇”的不确定性，特别适合润色
 
 - 从 `.md` 文件导入已有文档；
 - 导出为 Markdown，继续放回 Git、PR 或其他写作流程；
-- 在安装可选 PDF 依赖和中文字体后导出 PDF；
+- 在安装运行时依赖和中文字体后导出 PDF；
 - 本地运行数据与仓库源码分离，避免把个人文档误提交到 Git。
 
 ## 适合哪些场景
@@ -118,13 +118,14 @@ Writing Canvas 当前只解决“本地 Markdown 文档写作与可控修改”�
   `fcntl`；
 - Node.js：只用于运行前端 JavaScript 语法检查。
 
-必需依赖写在 `requirements.txt` 中：
+所有运行时依赖（包括 PDF 导出所需的 `reportlab`）都写在
+`requirements.txt` 中：
 
 ```bash
 python3 -m pip install -r requirements.txt
 ```
 
-PDF 导出是可选能力，额外安装：
+`requirements-pdf.txt` 保留为兼容入口；它会复用同一份基础依赖：
 
 ```bash
 python3 -m pip install -r requirements-pdf.txt
@@ -201,9 +202,8 @@ SEC 和 Tesla Investor Relations 的公开来源链接；它不是 Tesla 官方�
 ./scripts/check.sh
 ```
 
-检查包括 Skill 自检、`markdown-it-py` 依赖检查、Python 编译、前端 JavaScript
-语法、Git 空白和暂存区空白检查。`reportlab` 未安装时只会提示 PDF 导出不可用，
-不会阻塞其他检查。
+检查包括 Skill 自检、`markdown-it-py` 与 `reportlab` 依赖检查、Python 编译、
+前端 JavaScript 语法、Git 空白和暂存区空白检查。
 
 ## 开源许可
 
